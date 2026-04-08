@@ -8,12 +8,23 @@ import com.hrach.financeapp.data.repository.FinanceRepository
 import com.hrach.financeapp.ui.screens.AppRoot
 import com.hrach.financeapp.ui.theme.FinanceAppTheme
 import com.hrach.financeapp.viewmodel.HomeViewModel
+import com.hrach.financeapp.viewmodel.SessionViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ApiClient.init(applicationContext)
         val repository = FinanceRepository(ApiClient.financeApi)
-        val viewModel = HomeViewModel(repository)
-        setContent { FinanceAppTheme { AppRoot(viewModel) } }
+        val sessionViewModel = SessionViewModel(repository, ApiClient.sessionManager)
+        val homeViewModel = HomeViewModel(repository)
+
+        setContent {
+            FinanceAppTheme {
+                AppRoot(
+                    sessionViewModel = sessionViewModel,
+                    homeViewModel = homeViewModel
+                )
+            }
+        }
     }
 }

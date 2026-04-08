@@ -6,4 +6,5 @@ sealed class Screen(val route: String, val title: String) {
     data object Accounts : Screen("accounts", "Счета")
     data object Categories : Screen("categories", "Категории")
     data object AddTransaction : Screen("add_transaction", "Добавить")
+    data object Members : Screen("members", "Участники")
 }
