@@ -16,9 +16,12 @@ import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.repository.FinanceRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.time.LocalDate
@@ -57,6 +60,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
     val sessionExpired: StateFlow<Boolean> = _sessionExpired.asStateFlow()
 
     private var currentUserId: Int? = null
+    private var pollingJob: Job? = null
 
     fun onAuthenticated(userId: Int) {
         currentUserId = userId
@@ -64,6 +68,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
     }
 
     fun onLoggedOut() {
+        stopPolling()
         currentUserId = null
         _groups.value = emptyList()
         _selectedGroupId.value = null
@@ -223,6 +228,73 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
         }
     }
 
+    fun refreshAll() {
+        val groupId = _selectedGroupId.value
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val groupsData = repository.getGroups()
+                _groups.value = groupsData
+
+                val validSelected = groupsData.firstOrNull { it.id == groupId }?.id
+                val activeGroupId = validSelected ?: groupsData.firstOrNull()?.id
+                _selectedGroupId.value = activeGroupId
+
+                if (activeGroupId != null) {
+                    _accounts.value = repository.getAccounts(activeGroupId)
+                    _categories.value = repository.getCategories(activeGroupId)
+                    _transactions.value = repository.getTransactions(activeGroupId)
+                    _members.value = repository.getGroupMembers(activeGroupId)
+
+                    val now = LocalDate.now()
+                    val startDate = now.withDayOfMonth(1).toString()
+                    val endDate = now.withDayOfMonth(now.lengthOfMonth()).toString()
+                    _summary.value = repository.getSummary(activeGroupId, startDate, endDate)
+                } else {
+                    _accounts.value = emptyList()
+                    _categories.value = emptyList()
+                    _transactions.value = emptyList()
+                    _summary.value = null
+                    _members.value = emptyList()
+                }
+            } catch (e: Exception) {
+                _error.value = parseException(e)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    fun startPolling(intervalMs: Long = 15000L) {
+        val groupId = _selectedGroupId.value ?: return
+        if (pollingJob?.isActive == true) return
+
+        pollingJob = viewModelScope.launch {
+            while (isActive) {
+                try {
+                    _accounts.value = repository.getAccounts(groupId)
+                    _categories.value = repository.getCategories(groupId)
+                    _transactions.value = repository.getTransactions(groupId)
+                    _members.value = repository.getGroupMembers(groupId)
+
+                    val now = LocalDate.now()
+                    val startDate = now.withDayOfMonth(1).toString()
+                    val endDate = now.withDayOfMonth(now.lengthOfMonth()).toString()
+                    _summary.value = repository.getSummary(groupId, startDate, endDate)
+                } catch (e: Exception) {
+                    _error.value = parseException(e)
+                }
+                delay(intervalMs)
+            }
+        }
+    }
+
+    fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
     fun accountName(accountId: Int): String? = _accounts.value.firstOrNull { it.id == accountId }?.name
     fun categoryName(categoryId: Int?): String? = _categories.value.firstOrNull { it.id == categoryId }?.name
 
@@ -307,7 +379,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
             _loading.value = true
             _error.value = null
             try {
-                repository.createAccount(CreateAccountRequest(groupId, currentUserId, name, type, "RUB", initialBalance, shared))
+                repository.createAccount(CreateAccountRequest(groupId, null, name.trim(), type, "RUB", initialBalance, shared))
                 loadGroupData(groupId)
             } catch (e: Exception) {
                 _error.value = parseException(e)
@@ -368,7 +440,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
             _loading.value = true
             _error.value = null
             try {
-                repository.createCategory(CreateCategoryRequest(groupId, type, name, iconKey))
+                repository.createCategory(CreateCategoryRequest(groupId, type, name.trim(), iconKey))
                 loadGroupData(groupId)
             } catch (e: Exception) {
                 _error.value = parseException(e)
