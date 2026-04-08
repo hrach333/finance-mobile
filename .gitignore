@@ -1,0 +1,65 @@
+# 🔹 Gradle
+.gradle/
+build/
+
+# 🔹 Local config (ОЧЕНЬ важно не коммитить)
+local.properties
+
+# 🔹 Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# 🔹 Keystore (никогда не коммитим!)
+*.jks
+*.keystore
+
+# 🔹 Generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 🔹 Logs
+*.log
+
+# 🔹 OS мусор
+.DS_Store
+Thumbs.db
+
+# 🔹 Kotlin
+*.kotlin_module
+
+# 🔹 Android build outputs
+app/build/
+*/build/
+
+# 🔹 NDK
+obj/
+libs/
+
+# 🔹 Google Services (если используешь Firebase)
+google-services.json
+
+# 🔹 Secrets (если добавишь потом)
+secrets.properties
+
+# 🔹 APK / AAB
+*.apk
+*.aab
+
+# 🔹 Debug / Release
+*.ap_
+*.dex
+
+# 🔹 Test outputs
+test-output/
+
+# 🔹 Navigation Safe Args
+.navigation/
+
+# 🔹 Room schema (если не нужен в репо)
+schemas/
+
+# 🔹 Kapt
+kapt/
