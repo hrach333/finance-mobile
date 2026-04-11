@@ -137,9 +137,9 @@ fun HomeScreen(
                     Text("Выйти")
                 }
             }
-            if (currentUser != null) {
+            currentUser?.let { user ->
                 Text(
-                    text = "Пользователь: ${currentUser!!.name}",
+                    text = "Пользователь: ${user.name ?: user.email}",
                     color = Color(0xFF4B4760)
                 )
             }
