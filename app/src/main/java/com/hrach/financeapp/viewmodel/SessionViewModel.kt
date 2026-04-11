@@ -49,17 +49,49 @@ class SessionViewModel(
                 return@launch
             }
 
+            val cachedUser = sessionManager.getUser()
+            if (cachedUser != null) {
+                _currentUser.value = cachedUser
+                _authState.value = AuthState.Authenticated
+                refreshCurrentUserSilently()
+                return@launch
+            }
+
             _loading.value = true
             _error.value = null
             try {
-                _currentUser.value = repository.me()
+                val user = repository.me()
+                sessionManager.saveUser(user)
+                _currentUser.value = user
                 _authState.value = AuthState.Authenticated
-            } catch (_: Exception) {
-                sessionManager.clearToken()
-                _currentUser.value = null
-                _authState.value = AuthState.Unauthenticated
+            } catch (e: Exception) {
+                if (e is HttpException && e.code() == 401) {
+                    sessionManager.clearSession()
+                    _currentUser.value = null
+                    _authState.value = AuthState.Unauthenticated
+                } else {
+                    _authState.value = AuthState.Unauthenticated
+                    _error.value = parseException(e)
+                }
             } finally {
                 _loading.value = false
+            }
+        }
+    }
+
+    private fun refreshCurrentUserSilently() {
+        viewModelScope.launch {
+            try {
+                val user = repository.me()
+                sessionManager.saveUser(user)
+                _currentUser.value = user
+                _authState.value = AuthState.Authenticated
+            } catch (e: Exception) {
+                if (e is HttpException && e.code() == 401) {
+                    sessionManager.clearSession()
+                    _currentUser.value = null
+                    _authState.value = AuthState.Unauthenticated
+                }
             }
         }
     }
@@ -70,7 +102,7 @@ class SessionViewModel(
             _error.value = null
             try {
                 val response = repository.login(email, password)
-                sessionManager.saveToken(response.token)
+                sessionManager.saveSession(response.token, response.user)
                 _currentUser.value = response.user
                 _authState.value = AuthState.Authenticated
                 onSuccess()
@@ -88,7 +120,7 @@ class SessionViewModel(
             _error.value = null
             try {
                 val response = repository.register(name, email, password)
-                sessionManager.saveToken(response.token)
+                sessionManager.saveSession(response.token, response.user)
                 _currentUser.value = response.user
                 _authState.value = AuthState.Authenticated
                 onSuccess()
@@ -107,7 +139,7 @@ class SessionViewModel(
                 repository.logout()
             } catch (_: Exception) {
             } finally {
-                sessionManager.clearToken()
+                sessionManager.clearSession()
                 _currentUser.value = null
                 _authState.value = AuthState.Unauthenticated
                 _loading.value = false

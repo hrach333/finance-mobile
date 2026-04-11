@@ -301,6 +301,15 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
     fun createTransaction(type: String, amount: Double, accountId: Int, categoryId: Int, comment: String) {
         val groupId = _selectedGroupId.value ?: return
         val account = _accounts.value.firstOrNull { it.id == accountId } ?: return
+        if (accountId <= 0) {
+            _error.value = "Не выбран счёт"
+            return
+        }
+
+        if ((type == "INCOME" || type == "EXPENSE") && categoryId <= 0) {
+            _error.value = "Не выбрана категория"
+            return
+        }
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
@@ -309,7 +318,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
                     CreateTransactionRequest(
                         groupId = groupId,
                         accountId = accountId,
-                        createdBy = currentUserId,
+                        createdBy = null,
                         type = type,
                         amount = amount,
                         currency = account.currency,
@@ -339,7 +348,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
                     UpdateTransactionRequest(
                         groupId = groupId,
                         accountId = accountId,
-                        createdBy = item.createdBy ?: currentUserId,
+                        createdBy = null,
                         type = type,
                         amount = amount,
                         currency = account.currency,
