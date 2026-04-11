@@ -96,6 +96,10 @@ class SessionViewModel(
         }
     }
 
+    fun refreshCurrentUser() {
+        refreshCurrentUserSilently()
+    }
+
     fun login(email: String, password: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             _loading.value = true

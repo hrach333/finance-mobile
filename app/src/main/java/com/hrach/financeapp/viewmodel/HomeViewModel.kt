@@ -1,5 +1,6 @@
 package com.hrach.financeapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
@@ -15,8 +16,12 @@ import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
+import com.hrach.financeapp.data.network.NetworkMonitor
+import com.hrach.financeapp.data.offline.OfflineManager
 import com.hrach.financeapp.data.repository.FinanceRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +31,11 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.time.LocalDate
 
-class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
+class HomeViewModel(
+    private val repository: FinanceRepository,
+    private val offlineManager: OfflineManager? = null,
+    private val networkMonitor: NetworkMonitor? = null
+) : ViewModel() {
     private val gson = Gson()
 
     private val _groups = MutableStateFlow<List<GroupDto>>(emptyList())
@@ -59,8 +68,28 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
     private val _sessionExpired = MutableStateFlow(false)
     val sessionExpired: StateFlow<Boolean> = _sessionExpired.asStateFlow()
 
+    // Офлайн синхронизация
+    val isSyncing: StateFlow<Boolean> = offlineManager?.isSyncing ?: MutableStateFlow(false).asStateFlow()
+    val pendingCount: StateFlow<Int> = offlineManager?.pendingCount ?: MutableStateFlow(0).asStateFlow()
+    val syncError: StateFlow<String?> = offlineManager?.syncError ?: MutableStateFlow(null).asStateFlow()
+    val pendingOfflineOperations: Flow<List<com.hrach.financeapp.data.db.entity.PendingOperationEntity>> =
+        offlineManager?.pendingOperations ?: emptyFlow()
+
+    private val _isOnline = MutableStateFlow(true)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+
     private var currentUserId: Int? = null
     private var pollingJob: Job? = null
+
+    init {
+        networkMonitor?.let { monitor ->
+            viewModelScope.launch {
+                monitor.isOnline.collect { isOnline ->
+                    _isOnline.value = isOnline
+                }
+            }
+        }
+    }
 
     fun onAuthenticated(userId: Int) {
         currentUserId = userId
@@ -162,7 +191,9 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
                 val endDate = now.withDayOfMonth(now.lengthOfMonth()).toString()
                 _summary.value = repository.getSummary(id, startDate, endDate)
             } catch (e: Exception) {
+                Log.e("HomeViewModel", "Ошибка загрузки данных группы: ${e.message}")
                 _error.value = parseException(e)
+                // В офлайн режиме - не показываем ошибку, просто используем кэшированные данные
             } finally {
                 _loading.value = false
             }
@@ -300,7 +331,8 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
 
     fun createTransaction(type: String, amount: Double, accountId: Int, categoryId: Int, comment: String) {
         val groupId = _selectedGroupId.value ?: return
-        val account = _accounts.value.firstOrNull { it.id == accountId } ?: return
+        
+        // Базовые проверки
         if (accountId <= 0) {
             _error.value = "Не выбран счёт"
             return
@@ -310,10 +342,15 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
             _error.value = "Не выбрана категория"
             return
         }
+        
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
             try {
+                // Пытаемся получить валюту счета, если счета загружены
+                val account = _accounts.value.firstOrNull { it.id == accountId }
+                val currency = account?.currency ?: "RUB"  // Если счета нет - используем RUB
+                
                 repository.createTransaction(
                     CreateTransactionRequest(
                         groupId = groupId,
@@ -321,7 +358,7 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
                         createdBy = null,
                         type = type,
                         amount = amount,
-                        currency = account.currency,
+                        currency = currency,
                         categoryId = categoryId,
                         transactionDate = LocalDate.now().toString(),
                         comment = comment
@@ -497,6 +534,34 @@ class HomeViewModel(private val repository: FinanceRepository) : ViewModel() {
 
     fun clearSessionExpired() {
         _sessionExpired.value = false
+    }
+
+    /**
+     * Ручная синхронизация ожидающих операций
+     */
+    fun manualSync() {
+        viewModelScope.launch {
+            offlineManager?.syncPendingOperations()
+        }
+    }
+
+    /**
+     * Удалить операцию из очереди
+     */
+    fun deleteOfflineOperation(operationId: Long) {
+        viewModelScope.launch {
+            offlineManager?.deleteOperation(operationId)
+        }
+    }
+
+    /**
+     * Повторить неудачную операцию
+     */
+    fun retryOfflineOperation(operationId: Long) {
+        viewModelScope.launch {
+            offlineManager?.retryFailedOperation(operationId)
+            offlineManager?.syncPendingOperations()
+        }
     }
 
     private fun parseException(e: Exception): String {

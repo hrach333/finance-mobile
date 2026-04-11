@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,8 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.data.dto.GroupDto
+import com.hrach.financeapp.ui.components.OfflineSyncStatus
 import com.hrach.financeapp.ui.components.SummaryHeroCard
 import com.hrach.financeapp.ui.components.TransactionCard
+import com.hrach.financeapp.viewmodel.AuthState
 import com.hrach.financeapp.viewmodel.HomeViewModel
 import com.hrach.financeapp.viewmodel.SessionViewModel
 
@@ -70,11 +73,31 @@ fun HomeScreen(
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val currentUser by sessionViewModel.currentUser.collectAsStateWithLifecycle()
+    val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
+    // Офлайн синхронизация
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val syncError by viewModel.syncError.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
 
     var expanded by remember { mutableStateOf(false) }
     var showCreateGroup by remember { mutableStateOf(false) }
     var showEditGroup by remember { mutableStateOf(false) }
+
+    // Очистка ошибки при восстановлении интернета
+    LaunchedEffect(isOnline, error) {
+        if (isOnline && !error.isNullOrBlank()) {
+            viewModel.clearError()
+        }
+    }
+
+    // Загрузка пользователя при восстановлении интернета
+    LaunchedEffect(isOnline, currentUser, authState) {
+        if (isOnline && currentUser == null && authState is AuthState.Authenticated) {
+            sessionViewModel.refreshCurrentUser()
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -88,6 +111,16 @@ fun HomeScreen(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        item {
+            // Показываем статус офлайн синхронизации
+            OfflineSyncStatus(
+                isSyncing = isSyncing,
+                pendingCount = pendingCount,
+                syncError = syncError,
+                isOnline = isOnline
+            )
+        }
+        
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -23,7 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.gson.Gson
+import com.hrach.financeapp.data.db.entity.PendingOperationEntity
+import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.TransactionDto
+import com.hrach.financeapp.ui.components.OfflinePendingTransactionCard
 import com.hrach.financeapp.ui.components.TransactionCard
 import com.hrach.financeapp.viewmodel.HomeViewModel
 
@@ -31,6 +35,8 @@ import com.hrach.financeapp.viewmodel.HomeViewModel
 fun TransactionsScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) {
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val pendingOfflineOperations by viewModel.pendingOfflineOperations.collectAsStateWithLifecycle(initialValue = emptyList())
+    val gson = remember { Gson() }
     var deleteTarget by remember { mutableStateOf<TransactionDto?>(null) }
     var editTarget by remember { mutableStateOf<TransactionDto?>(null) }
 
@@ -51,6 +57,32 @@ fun TransactionsScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { Text("Операции", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+
+        if (pendingOfflineOperations.isNotEmpty()) {
+            item {
+                Text(
+                    "Операции, сохранённые офлайн",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+            items(pendingOfflineOperations) { operation ->
+                val request = if (operation.operationType == PendingOperationEntity.TYPE_CREATE_TRANSACTION) {
+                    try {
+                        gson.fromJson(operation.jsonData, CreateTransactionRequest::class.java)
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else null
+                OfflinePendingTransactionCard(
+                    operation = operation,
+                    categoryName = request?.categoryId?.let { categories.firstOrNull { category -> category.id == it }?.name },
+                    accountName = request?.accountId?.let { viewModel.accountName(it) }
+                )
+            }
+        }
+
         items(transactions) { item ->
             TransactionCard(
                 item = item,
