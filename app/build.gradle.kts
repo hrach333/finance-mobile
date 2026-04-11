@@ -16,13 +16,23 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("path/to/your/keystore.jks")  // Замените на путь к вашему keystore
+            storePassword = "your_store_password"          // Замените на пароль keystore
+            keyAlias = "your_key_alias"                    // Замените на alias ключа
+            keyPassword = "your_key_password"              // Замените на пароль ключа
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true  // Включить для оптимизации
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
