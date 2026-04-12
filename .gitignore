@@ -48,6 +48,25 @@ secrets.properties
 *.apk
 *.aab
 
+# 🔹 Archive files (включая src.zip и другие)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 🔹 Additional build artifacts
+*.dex
+*.class
+*.jar
+*.war
+*.ear
+
+# 🔹 Temporary files
+*.tmp
+*.temp
+*.swp
+*.bak
+
 # 🔹 Debug / Release
 *.ap_
 *.dex
