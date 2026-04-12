@@ -18,10 +18,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("path/to/your/keystore.jks")  // Замените на путь к вашему keystore
-            storePassword = "your_store_password"          // Замените на пароль keystore
-            keyAlias = "your_key_alias"                    // Замените на alias ключа
-            keyPassword = "your_key_password"              // Замените на пароль ключа
+            storeFile = file("financeapp-release-key.jks")
+            storePassword = "finance123"
+            keyAlias = "financeapp-key"
+            keyPassword = "finance123"
         }
     }
 
