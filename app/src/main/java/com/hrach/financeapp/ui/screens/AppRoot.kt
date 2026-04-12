@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -95,6 +96,7 @@ private fun MainAppScaffold(
     val items = listOf(
         Screen.Home,
         Screen.Transactions,
+        Screen.Analytics,
         Screen.Accounts,
         Screen.Members
     )
@@ -142,6 +144,7 @@ private fun MainAppScaffold(
                     val icon = when (screen) {
                         Screen.Home -> Icons.Filled.Home
                         Screen.Transactions -> Icons.AutoMirrored.Filled.List
+                        Screen.Analytics -> Icons.Filled.PieChart
                         Screen.Accounts -> Icons.Filled.AccountBalanceWallet
                         Screen.Members -> Icons.Filled.Group
                         else -> Icons.Filled.Home
@@ -193,6 +196,9 @@ private fun MainAppScaffold(
             }
             composable(Screen.Transactions.route) {
                 TransactionsScreen(homeViewModel, paddingValues)
+            }
+            composable(Screen.Analytics.route) {
+                GraphAnalysisScreen(homeViewModel, paddingValues)
             }
             composable(Screen.Accounts.route) {
                 AccountsScreen(homeViewModel, paddingValues)

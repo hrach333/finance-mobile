@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.viewmodel.SessionViewModel
@@ -108,7 +109,8 @@ private fun LoginForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         onValueChange = { password = it },
         label = { Text("Пароль") },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation()
     )
     Spacer(Modifier.height(4.dp))
     Button(
@@ -151,7 +153,8 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         onValueChange = { password = it },
         label = { Text("Пароль") },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation()
     )
     OutlinedTextField(
         value = passwordConfirm,
@@ -159,7 +162,8 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         label = { Text("Повтори пароль") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        isError = passwordError
+        isError = passwordError,
+        visualTransformation = PasswordVisualTransformation()
     )
     if (passwordError) {
         Text("Пароли не совпадают", color = MaterialTheme.colorScheme.error)
