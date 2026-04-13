@@ -53,7 +53,6 @@ class SessionViewModel(
             if (cachedUser != null) {
                 _currentUser.value = cachedUser
                 _authState.value = AuthState.Authenticated
-                refreshCurrentUserSilently()
                 return@launch
             }
 

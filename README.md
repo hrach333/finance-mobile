@@ -1,4 +1,4 @@
-# Finance Mobile Starter
+# Умный бюджет
 
 Это стартовый Android-клиент на Kotlin + Jetpack Compose для твоего Laravel API.
 

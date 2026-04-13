@@ -27,10 +27,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hrach.financeapp.R
 import com.hrach.financeapp.viewmodel.SessionViewModel
 
 @Composable
@@ -60,7 +68,7 @@ fun AuthGateScreen(sessionViewModel: SessionViewModel) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Finance Family",
+                    text = stringResource(R.string.app_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -96,6 +104,7 @@ fun AuthGateScreen(sessionViewModel: SessionViewModel) {
 private fun LoginForm(sessionViewModel: SessionViewModel, loading: Boolean) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     OutlinedTextField(
         value = email,
@@ -110,7 +119,15 @@ private fun LoginForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         label = { Text("Пароль") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        visualTransformation = PasswordVisualTransformation()
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль"
+                )
+            }
+        }
     )
     Spacer(Modifier.height(4.dp))
     Button(
@@ -132,6 +149,8 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordConfirmVisible by remember { mutableStateOf(false) }
     val passwordError = passwordConfirm.isNotBlank() && password != passwordConfirm
 
     OutlinedTextField(
@@ -154,7 +173,15 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         label = { Text("Пароль") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        visualTransformation = PasswordVisualTransformation()
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль"
+                )
+            }
+        }
     )
     OutlinedTextField(
         value = passwordConfirm,
@@ -163,7 +190,15 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         isError = passwordError,
-        visualTransformation = PasswordVisualTransformation()
+        visualTransformation = if (passwordConfirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { passwordConfirmVisible = !passwordConfirmVisible }) {
+                Icon(
+                    imageVector = if (passwordConfirmVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                    contentDescription = if (passwordConfirmVisible) "Скрыть пароль" else "Показать пароль"
+                )
+            }
+        }
     )
     if (passwordError) {
         Text("Пароли не совпадают", color = MaterialTheme.colorScheme.error)

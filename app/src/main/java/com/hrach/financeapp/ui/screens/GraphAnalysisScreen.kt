@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -383,18 +384,24 @@ private fun SummaryMetricCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.86f)
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.92f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "${if (isIncome) "+" else "−"}${value.toInt()} ₽",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = if (isIncome) Color(0xFF15803D) else Color(0xFFB91C1C)
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = if (isIncome) Color(0xFF15803D) else Color(0xFFB91C1C),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

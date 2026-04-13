@@ -16,12 +16,12 @@ class SessionManager(context: Context) {
     fun getToken(): String? = _token.value
 
     fun saveToken(token: String) {
-        prefs.edit().putString(KEY_TOKEN, token).apply()
+        prefs.edit().putString(KEY_TOKEN, token).commit()
         _token.value = token
     }
 
     fun saveUser(user: UserDto) {
-        prefs.edit().putString(KEY_USER, gson.toJson(user)).apply()
+        prefs.edit().putString(KEY_USER, gson.toJson(user)).commit()
     }
 
     fun getUser(): UserDto? {
@@ -33,17 +33,17 @@ class SessionManager(context: Context) {
         prefs.edit()
             .putString(KEY_TOKEN, token)
             .putString(KEY_USER, gson.toJson(user))
-            .apply()
+            .commit()
         _token.value = token
     }
 
     fun clearToken() {
-        prefs.edit().remove(KEY_TOKEN).apply()
+        prefs.edit().remove(KEY_TOKEN).commit()
         _token.value = null
     }
 
     fun clearSession() {
-        prefs.edit().remove(KEY_TOKEN).remove(KEY_USER).apply()
+        prefs.edit().remove(KEY_TOKEN).remove(KEY_USER).commit()
         _token.value = null
     }
 
