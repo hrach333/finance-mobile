@@ -48,6 +48,25 @@ secrets.properties
 *.apk
 *.aab
 
+# 🔹 Archive files (включая src.zip и другие)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 🔹 Additional build artifacts
+*.dex
+*.class
+*.jar
+*.war
+*.ear
+
+# 🔹 Temporary files
+*.tmp
+*.temp
+*.swp
+*.bak
+
 # 🔹 Debug / Release
 *.ap_
 *.dex
@@ -63,6 +82,3 @@ schemas/
 
 # 🔹 Kapt
 kapt/
-4fdbc554-16a8-4d4c-afa4-f0608f68fb29.png
-170722b1-3481-4b47-b0b2-27ecfa93df8d.png
-ChatGPT Image 12 апр. 2026 г., 23_59_24.png
