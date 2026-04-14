@@ -9,8 +9,12 @@ import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateGroupRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
+import com.hrach.financeapp.data.dto.ForgotPasswordRequest
+import com.hrach.financeapp.data.dto.ForgotPasswordResponse
 import com.hrach.financeapp.data.dto.LoginRequest
+import com.hrach.financeapp.data.dto.MessageResponse
 import com.hrach.financeapp.data.dto.RegisterRequest
+import com.hrach.financeapp.data.dto.ResetPasswordRequest
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateGroupRequest
@@ -49,6 +53,13 @@ class FinanceRepository(
         api.register(RegisterRequest(name = name, email = email, password = password, passwordConfirmation = password))
 
     suspend fun login(email: String, password: String) = api.login(LoginRequest(email, password))
+
+    suspend fun forgotPassword(email: String): ForgotPasswordResponse =
+        api.forgotPassword(ForgotPasswordRequest(email))
+
+    suspend fun resetPassword(email: String, code: String, password: String): MessageResponse =
+        api.resetPassword(ResetPasswordRequest(email = email, code = code, password = password, passwordConfirmation = password))
+
     suspend fun me() = api.me()
     suspend fun logout() = api.logout()
 
