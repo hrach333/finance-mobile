@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -72,7 +73,7 @@ fun LegalDocumentScreen(documentType: String, onBack: () -> Unit) {
                 }
             )
         }
-    ) { _ ->
+    ) { paddingValues ->
         AndroidView(
             factory = { ctx ->
                 WebView(ctx).apply {
@@ -80,7 +81,9 @@ fun LegalDocumentScreen(documentType: String, onBack: () -> Unit) {
                     loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
                 }
             },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
             update = { webView ->
                 webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
             }
