@@ -3,6 +3,7 @@ package com.hrach.financeapp.data.api
 import android.content.Context
 import com.hrach.financeapp.data.auth.AuthInterceptor
 import com.hrach.financeapp.data.auth.SessionManager
+import com.hrach.financeapp.data.network.AIService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,6 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
     private const val BASE_URL = "https://finance.hrach.ru/api/"
+    private const val AI_BASE_URL = "http://127.0.0.1:1234"
 
     lateinit var sessionManager: SessionManager
         private set
@@ -32,6 +34,12 @@ object ApiClient {
             .build()
     }
 
+    private val aiHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .build()
+    }
+
     val financeApi: FinanceApi by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -39,5 +47,14 @@ object ApiClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(FinanceApi::class.java)
+    }
+
+    val aiService: AIService by lazy {
+        Retrofit.Builder()
+            .baseUrl(AI_BASE_URL)
+            .client(aiHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(AIService::class.java)
     }
 }

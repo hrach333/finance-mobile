@@ -4,9 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.hrach.financeapp.data.api.ApiClient
 import com.hrach.financeapp.data.dto.AccountDto
+import com.hrach.financeapp.data.dto.AIChatRequest
 import com.hrach.financeapp.data.dto.ApiErrorResponse
 import com.hrach.financeapp.data.dto.CategoryDto
+import com.hrach.financeapp.data.dto.ChatMessage
 import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
@@ -16,6 +19,7 @@ import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
+import com.hrach.financeapp.data.network.AIPromptBuilder
 import com.hrach.financeapp.data.network.NetworkMonitor
 import com.hrach.financeapp.data.offline.OfflineManager
 import com.hrach.financeapp.data.repository.FinanceRepository
@@ -68,6 +72,16 @@ class HomeViewModel(
     private val _sessionExpired = MutableStateFlow(false)
     val sessionExpired: StateFlow<Boolean> = _sessionExpired.asStateFlow()
 
+    // AI советник
+    private val _aiAdvice = MutableStateFlow<String?>(null)
+    val aiAdvice: StateFlow<String?> = _aiAdvice.asStateFlow()
+
+    private val _aiLoading = MutableStateFlow(false)
+    val aiLoading: StateFlow<Boolean> = _aiLoading.asStateFlow()
+
+    private val _aiError = MutableStateFlow<String?>(null)
+    val aiError: StateFlow<String?> = _aiError.asStateFlow()
+
     // Офлайн синхронизация
     val isSyncing: StateFlow<Boolean> = offlineManager?.isSyncing ?: MutableStateFlow(false).asStateFlow()
     val pendingCount: StateFlow<Int> = offlineManager?.pendingCount ?: MutableStateFlow(0).asStateFlow()
@@ -108,6 +122,8 @@ class HomeViewModel(
         _members.value = emptyList()
         _error.value = null
         _sessionExpired.value = false
+        _aiAdvice.value = null
+        _aiError.value = null
     }
 
     fun loadGroups() {
@@ -562,6 +578,60 @@ class HomeViewModel(
             offlineManager?.retryFailedOperation(operationId)
             offlineManager?.syncPendingOperations()
         }
+    }
+
+    /**
+     * Получить финансовый совет от ИИ
+     */
+    fun getFinanceAdvice() {
+        viewModelScope.launch {
+            _aiLoading.value = true
+            _aiError.value = null
+            _aiAdvice.value = null
+            try {
+                val prompt = AIPromptBuilder.buildFinanceAdvicePrompt(
+                    transactions = _transactions.value,
+                    categories = _categories.value,
+                    summary = _summary.value
+                )
+
+                val request = AIChatRequest(
+                    messages = listOf(
+                        ChatMessage(role = "user", content = prompt)
+                    ),
+                    temperature = 0.7,
+                    max_tokens = 1000
+                )
+
+                val response = ApiClient.aiService.getChatCompletion(request)
+                val advice = response.choices.firstOrNull()?.message?.content
+                
+                if (advice != null) {
+                    _aiAdvice.value = advice
+                } else {
+                    _aiError.value = "Не удалось получить ответ от ИИ"
+                }
+            } catch (e: Exception) {
+                Log.e("AI_ADVICE", "Ошибка при запросе к ИИ", e)
+                _aiError.value = when {
+                    e.message?.contains("Connection refused") == true -> 
+                        "ИИ модель недоступна. Убедитесь, что LM запущен на http://127.0.0.1:1234"
+                    e.message?.contains("Failed to connect") == true ->
+                        "Не удалось подключиться к ИИ модели"
+                    else -> "Ошибка: ${e.message ?: "Неизвестная ошибка"}"
+                }
+            } finally {
+                _aiLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Очистить совет от ИИ
+     */
+    fun clearAIAdvice() {
+        _aiAdvice.value = null
+        _aiError.value = null
     }
 
     private fun parseException(e: Exception): String {
