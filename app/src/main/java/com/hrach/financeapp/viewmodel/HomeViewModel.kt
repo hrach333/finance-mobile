@@ -668,9 +668,19 @@ class HomeViewModel(
                         is Map<*, *> -> {
                             @Suppress("UNCHECKED_CAST")
                             val errorsMap = errors as? Map<String, List<String>> ?: return ""
-                            errorsMap.values
-                                .flatten()
-                                .joinToString("\n") { mapError(it) }
+                            errorsMap.entries
+                                .map { (field, messages) ->
+                                    val translatedMessages = messages.map { mapError(it) }
+                                    val fieldName = when (field) {
+                                        "name" -> "Имя"
+                                        "email" -> "Email"
+                                        "password" -> "Пароль"
+                                        "password_confirmation" -> "Подтверждение пароля"
+                                        else -> field.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                    }
+                                    "$fieldName: ${translatedMessages.joinToString(", ")}"
+                                }
+                                .joinToString("\n")
                         }
                         is List<*> -> {
                             errors.filterIsInstance<String>()
