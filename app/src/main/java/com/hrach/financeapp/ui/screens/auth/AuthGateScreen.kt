@@ -151,7 +151,6 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
     var passwordConfirm by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var passwordConfirmVisible by remember { mutableStateOf(false) }
-    val passwordError = passwordConfirm.isNotBlank() && password != passwordConfirm
 
     OutlinedTextField(
         value = name,
@@ -189,7 +188,6 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         label = { Text("Повтори пароль") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        isError = passwordError,
         visualTransformation = if (passwordConfirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
             IconButton(onClick = { passwordConfirmVisible = !passwordConfirmVisible }) {
@@ -200,14 +198,11 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             }
         }
     )
-    if (passwordError) {
-        Text("Пароли не совпадают", color = MaterialTheme.colorScheme.error)
-    }
     Spacer(Modifier.height(4.dp))
     Button(
         onClick = { sessionViewModel.register(name.trim(), email.trim(), password) },
         modifier = Modifier.fillMaxWidth(),
-        enabled = !loading && name.isNotBlank() && email.isNotBlank() && password.length >= 8 && !passwordError
+        enabled = !loading && name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && passwordConfirm.isNotBlank()
     ) {
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)

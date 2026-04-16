@@ -1,5 +1,6 @@
 package com.hrach.financeapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
@@ -157,17 +158,74 @@ class SessionViewModel(
     private fun parseException(e: Exception): String {
         if (e is HttpException) {
             val body = e.response()?.errorBody()?.string()
-            val parsed = runCatching { gson.fromJson(body, ApiErrorResponse::class.java) }.getOrNull()
-            if (!parsed?.errors.isNullOrEmpty()) {
-                return parsed?.errors?.values?.flatten()?.joinToString("\n") ?: "Ошибка запроса"
+            Log.e("SessionViewModel", "HTTP Error ${e.code()}: $body")
+            
+            val errorText = parseError(body)
+            if (errorText.isNotBlank()) {
+                Log.d("SessionViewModel", "Errors from backend:\n$errorText")
+                return errorText
             }
+            
             return when (e.code()) {
                 401 -> "Неверный email или пароль"
                 403 -> "Нет доступа"
-                422 -> parsed?.message ?: "Ошибка валидации"
-                else -> parsed?.message ?: "Ошибка запроса: ${e.code()}"
+                422 -> "Ошибка валидации: проверьте введенные данные"
+                else -> "Ошибка запроса: ${e.code()}"
             }
         }
         return e.message ?: "Неизвестная ошибка"
+    }
+    
+    private fun parseError(json: String?): String {
+        return try {
+            val parsed = gson.fromJson(json, ApiErrorResponse::class.java)
+            
+            parsed.errors
+                ?.let { errors ->
+                    when (errors) {
+                        is Map<*, *> -> {
+                            @Suppress("UNCHECKED_CAST")
+                            val errorsMap = errors as? Map<String, List<String>> ?: return ""
+                            errorsMap.values
+                                .flatten()
+                                .joinToString("\n") { mapError(it) }
+                        }
+                        is List<*> -> {
+                            errors.filterIsInstance<String>()
+                                .joinToString("\n") { mapError(it) }
+                        }
+                        else -> ""
+                    }
+                }
+                ?: parsed.message
+                ?: "Ошибка запроса"
+        } catch (e: Exception) {
+            Log.e("SessionViewModel", "Failed to parse error: ${e.message}")
+            "Ошибка запроса"
+        }
+    }
+    
+    private fun mapError(message: String): String {
+        return when {
+            message.contains("email has already been taken", ignoreCase = true) ->
+                "Пользователь с таким email уже существует"
+
+            message.contains("password must be at least", ignoreCase = true) ->
+                "Пароль должен быть не менее 8 символов"
+
+            message.contains("password confirmation does not match", ignoreCase = true) ->
+                "Пароли не совпадают"
+
+            message.contains("email must be a valid email", ignoreCase = true) ->
+                "Некорректный email"
+            
+            message.contains("validation.unique", ignoreCase = true) ->
+                "Это значение уже занято"
+            
+            message.contains("validation.required", ignoreCase = true) ->
+                "Это поле обязательно"
+
+            else -> message
+        }
     }
 }

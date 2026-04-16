@@ -637,20 +637,113 @@ class HomeViewModel(
     private fun parseException(e: Exception): String {
         if (e is HttpException) {
             val body = e.response()?.errorBody()?.string()
-            val parsed = runCatching { gson.fromJson(body, ApiErrorResponse::class.java) }.getOrNull()
-            if (!parsed?.errors.isNullOrEmpty()) {
-                return parsed?.errors?.values?.flatten()?.joinToString("\n") ?: "Ошибка запроса"
+            Log.e("HomeViewModel", "HTTP Error ${e.code()}: $body")
+            
+            val errorText = parseError(body)
+            if (errorText.isNotBlank()) {
+                Log.d("HomeViewModel", "Errors from backend:\n$errorText")
+                return errorText
             }
+            
             return when (e.code()) {
                 401 -> {
                     _sessionExpired.value = true
                     "Сессия истекла. Войди снова"
                 }
                 403 -> "Нет доступа к группе"
-                422 -> parsed?.message ?: "Ошибка валидации"
-                else -> parsed?.message ?: "Ошибка запроса: ${e.code()}"
+                422 -> "Ошибка валидации: проверьте введенные данные"
+                else -> "Ошибка запроса: ${e.code()}"
             }
         }
         return e.message ?: "Неизвестная ошибка"
+    }
+    
+    private fun parseError(json: String?): String {
+        return try {
+            val parsed = gson.fromJson(json, ApiErrorResponse::class.java)
+            
+            parsed.errors
+                ?.let { errors ->
+                    when (errors) {
+                        is Map<*, *> -> {
+                            @Suppress("UNCHECKED_CAST")
+                            val errorsMap = errors as? Map<String, List<String>> ?: return ""
+                            errorsMap.values
+                                .flatten()
+                                .joinToString("\n") { mapError(it) }
+                        }
+                        is List<*> -> {
+                            errors.filterIsInstance<String>()
+                                .joinToString("\n") { mapError(it) }
+                        }
+                        else -> ""
+                    }
+                }
+                ?: parsed.message
+                ?: "Ошибка запроса"
+        } catch (e: Exception) {
+            Log.e("HomeViewModel", "Failed to parse error: ${e.message}")
+            "Ошибка запроса"
+        }
+    }
+    
+    private fun formatErrors(errors: Any?): String {
+        return when (errors) {
+            // Если errors это массив строк: ["validation.unique", ...]
+            is List<*> -> {
+                errors.filterIsInstance<String>()
+                    .joinToString("\n") { translateError(it.trim()) }
+            }
+            // Если errors это Map: {"field": ["message1", "message2"]}
+            is Map<*, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                val errorsMap = errors as? Map<String, List<String>> ?: return ""
+                errorsMap.entries.joinToString("\n") { (field, messages) ->
+                    val fieldName = getFieldName(field as? String ?: "")
+                    val translatedMessages = messages.map { translateError(it.trim()) }
+                        .joinToString("; ")
+                    "$fieldName: $translatedMessages"
+                }
+            }
+            else -> ""
+        }
+    }
+    
+    private fun getFieldName(field: String): String {
+        return when (field.toLowerCase()) {
+            "email" -> "📧 Email"
+            "password" -> "🔐 Пароль"
+            "password_confirmation", "password confirmation" -> "🔐 Подтверждение пароля"
+            "name" -> "👤 Имя"
+            else -> field
+        }
+    }
+    
+    private fun translateError(error: String): String {
+        return mapError(error)
+    }
+    
+    private fun mapError(message: String): String {
+        return when {
+            message.contains("email has already been taken", ignoreCase = true) ->
+                "Пользователь с таким email уже существует"
+
+            message.contains("password must be at least", ignoreCase = true) ->
+                "Пароль должен быть не менее 8 символов"
+
+            message.contains("password confirmation does not match", ignoreCase = true) ->
+                "Пароли не совпадают"
+
+            message.contains("email must be a valid email", ignoreCase = true) ->
+                "Некорректный email"
+            
+            message.contains("validation.unique", ignoreCase = true) ->
+                "Это значение уже занято"
+            
+            message.contains("validation.required", ignoreCase = true) ->
+                "Это поле обязательно"
+
+            else -> message
+        }
     }
 }
