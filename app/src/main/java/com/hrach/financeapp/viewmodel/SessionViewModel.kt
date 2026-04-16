@@ -209,6 +209,7 @@ class SessionViewModel(
     private fun parseError(json: String?): String {
         return try {
             val parsed = gson.fromJson(json, ApiErrorResponse::class.java)
+            Log.d("SessionViewModel", "Parsed response: errors=${parsed.errors}, message=${parsed.message}")
             
             parsed.errors
                 ?.let { errors ->
@@ -218,7 +219,8 @@ class SessionViewModel(
                             val errorsMap = errors as? Map<String, List<String>> ?: return ""
                             errorsMap.entries
                                 .map { (field, messages) ->
-                                    val translatedMessages = messages.map { mapError(it) }
+                                    val translatedMessages = messages
+                                        .map { mapError(it) }
                                     val fieldName = when (field) {
                                         "name" -> "Имя"
                                         "email" -> "Email"
@@ -232,7 +234,8 @@ class SessionViewModel(
                         }
                         is List<*> -> {
                             errors.filterIsInstance<String>()
-                                .joinToString("\n") { mapError(it) }
+                                .map { mapError(it) }
+                                .joinToString("\n")
                         }
                         else -> ""
                     }
@@ -240,7 +243,7 @@ class SessionViewModel(
                 ?: parsed.message
                 ?: "Ошибка запроса"
         } catch (e: Exception) {
-            Log.e("SessionViewModel", "Failed to parse error: ${e.message}")
+            Log.e("SessionViewModel", "Failed to parse error: ${e.message}, json=$json")
             "Ошибка запроса"
         }
     }
@@ -264,6 +267,18 @@ class SessionViewModel(
             
             message.contains("validation.required", ignoreCase = true) ->
                 "Это поле обязательно"
+            
+            message.contains("validation.min.string", ignoreCase = true) ->
+                "Значение слишком короткое"
+            
+            message.contains("validation.min.numeric", ignoreCase = true) ->
+                "Значение должно быть больше"
+            
+            message.contains("validation.confirmed", ignoreCase = true) ->
+                "Поле подтверждения не совпадает"
+            
+            message.contains("validation.email", ignoreCase = true) ->
+                "Email должен быть корректным"
 
             else -> message
         }

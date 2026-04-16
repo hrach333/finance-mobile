@@ -661,6 +661,7 @@ class HomeViewModel(
     private fun parseError(json: String?): String {
         return try {
             val parsed = gson.fromJson(json, ApiErrorResponse::class.java)
+            Log.d("HomeViewModel", "Parsed response: errors=${parsed.errors}, message=${parsed.message}")
             
             parsed.errors
                 ?.let { errors ->
@@ -670,7 +671,8 @@ class HomeViewModel(
                             val errorsMap = errors as? Map<String, List<String>> ?: return ""
                             errorsMap.entries
                                 .map { (field, messages) ->
-                                    val translatedMessages = messages.map { mapError(it) }
+                                    val translatedMessages = messages
+                                        .map { mapError(it) }
                                     val fieldName = when (field) {
                                         "name" -> "Имя"
                                         "email" -> "Email"
@@ -684,7 +686,8 @@ class HomeViewModel(
                         }
                         is List<*> -> {
                             errors.filterIsInstance<String>()
-                                .joinToString("\n") { mapError(it) }
+                                .map { mapError(it) }
+                                .joinToString("\n")
                         }
                         else -> ""
                     }
@@ -692,45 +695,9 @@ class HomeViewModel(
                 ?: parsed.message
                 ?: "Ошибка запроса"
         } catch (e: Exception) {
-            Log.e("HomeViewModel", "Failed to parse error: ${e.message}")
+            Log.e("HomeViewModel", "Failed to parse error: ${e.message}, json=$json")
             "Ошибка запроса"
         }
-    }
-    
-    private fun formatErrors(errors: Any?): String {
-        return when (errors) {
-            // Если errors это массив строк: ["validation.unique", ...]
-            is List<*> -> {
-                errors.filterIsInstance<String>()
-                    .joinToString("\n") { translateError(it.trim()) }
-            }
-            // Если errors это Map: {"field": ["message1", "message2"]}
-            is Map<*, *> -> {
-                @Suppress("UNCHECKED_CAST")
-                val errorsMap = errors as? Map<String, List<String>> ?: return ""
-                errorsMap.entries.joinToString("\n") { (field, messages) ->
-                    val fieldName = getFieldName(field as? String ?: "")
-                    val translatedMessages = messages.map { translateError(it.trim()) }
-                        .joinToString("; ")
-                    "$fieldName: $translatedMessages"
-                }
-            }
-            else -> ""
-        }
-    }
-    
-    private fun getFieldName(field: String): String {
-        return when (field.toLowerCase()) {
-            "email" -> "📧 Email"
-            "password" -> "🔐 Пароль"
-            "password_confirmation", "password confirmation" -> "🔐 Подтверждение пароля"
-            "name" -> "👤 Имя"
-            else -> field
-        }
-    }
-    
-    private fun translateError(error: String): String {
-        return mapError(error)
     }
     
     private fun mapError(message: String): String {
@@ -752,6 +719,18 @@ class HomeViewModel(
             
             message.contains("validation.required", ignoreCase = true) ->
                 "Это поле обязательно"
+            
+            message.contains("validation.min.string", ignoreCase = true) ->
+                "Значение слишком короткое"
+            
+            message.contains("validation.min.numeric", ignoreCase = true) ->
+                "Значение должно быть больше"
+            
+            message.contains("validation.confirmed", ignoreCase = true) ->
+                "Поле подтверждения не совпадает"
+            
+            message.contains("validation.email", ignoreCase = true) ->
+                "Email должен быть корректным"
 
             else -> message
         }
