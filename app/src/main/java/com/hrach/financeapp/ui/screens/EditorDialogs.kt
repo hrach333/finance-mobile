@@ -14,17 +14,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -48,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.data.dto.TransactionDto
+import com.hrach.financeapp.ui.utils.categoryIconOptions
 import com.hrach.financeapp.viewmodel.HomeViewModel
 
 private fun accountTypeLabel(type: String): String {
@@ -68,19 +58,8 @@ private fun transactionTypeLabel(type: String): String {
 }
 
 private fun categoryIcon(iconKey: String?): ImageVector {
-    return when (iconKey) {
-        "food" -> Icons.Filled.Fastfood
-        "fun" -> Icons.Filled.SportsEsports
-        "salary" -> Icons.Filled.Work
-        "gift" -> Icons.Filled.Favorite
-        "cash" -> Icons.Filled.Payments
-        "shopping" -> Icons.Filled.ShoppingBag
-        "transport" -> Icons.Filled.DirectionsCar
-        "health" -> Icons.Filled.LocalHospital
-        "home" -> Icons.Filled.Home
-        "wallet" -> Icons.Filled.AccountBalanceWallet
-        else -> Icons.Filled.MoreHoriz
-    }
+    val option = categoryIconOptions.firstOrNull { it.key == iconKey }
+    return option?.icon ?: categoryIconOptions.last().icon
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,18 +167,7 @@ fun CategoryEditorDialog(
     var typeExpanded by remember { mutableStateOf(false) }
 
     val categoryTypes = listOf("EXPENSE", "INCOME")
-    val categoryIcons = listOf(
-        "food",
-        "fun",
-        "salary",
-        "gift",
-        "cash",
-        "shopping",
-        "transport",
-        "health",
-        "home",
-        "wallet"
-    )
+    val categoryIcons = categoryIconOptions.map { it.key }
 
     AlertDialog(
         onDismissRequest = onDismiss,

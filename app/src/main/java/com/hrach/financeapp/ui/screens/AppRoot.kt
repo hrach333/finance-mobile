@@ -204,7 +204,9 @@ private fun MainAppScaffold(
                 AccountsScreen(homeViewModel, paddingValues)
             }
             composable(Screen.Members.route) {
-                GroupMembersScreen(homeViewModel, paddingValues)
+                GroupMembersScreen(homeViewModel, paddingValues) {
+                    navController.popBackStack()
+                }
             }
             composable(Screen.Categories.route) {
                 CategoriesScreen(
@@ -214,9 +216,11 @@ private fun MainAppScaffold(
                 )
             }
             composable(Screen.AddTransaction.route) {
-                AddTransactionScreen(homeViewModel, paddingValues) {
+                AddTransactionScreen(homeViewModel, paddingValues, onSaved = {
                     navController.popBackStack()
-                }
+                }, onBack = {
+                    navController.popBackStack()
+                })
             }
         }
     }

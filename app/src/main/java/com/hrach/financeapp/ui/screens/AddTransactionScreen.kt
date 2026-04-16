@@ -1,6 +1,8 @@
 package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,7 +14,7 @@ import com.hrach.financeapp.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues, onSaved: () -> Unit) {
+fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues, onSaved: () -> Unit, onBack: () -> Unit = {}) {
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val expenseCategories = categories.filter { it.type == "EXPENSE" }
@@ -27,9 +29,21 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
     var selectedCategoryId by remember { mutableStateOf(expenseCategories.firstOrNull()?.id) }
     val currentCategories = if (type == "INCOME") incomeCategories else expenseCategories
 
-    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Новая операция", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Card(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Новая операция") },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Назад"
+                    )
+                }
+            }
+        )
+
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ExposedDropdownMenuBox(expanded = typeExpanded, onExpandedChange = { typeExpanded = !typeExpanded }) {
                     OutlinedTextField(value = type.toTransactionLabel(), onValueChange = {}, readOnly = true, label = { Text("Тип") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
@@ -61,5 +75,6 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
             viewModel.createTransaction(type, parsedAmount, accountId, categoryId, comment)
             onSaved()
         }, modifier = Modifier.fillMaxWidth()) { Text("Сохранить") }
+        }
     }
 }
