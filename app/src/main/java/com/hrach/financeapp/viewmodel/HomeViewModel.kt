@@ -660,6 +660,7 @@ class HomeViewModel(
     
     private fun parseError(json: String?): String {
         return try {
+            Log.d("HomeViewModel", "Raw JSON response: $json")
             val parsed = gson.fromJson(json, ApiErrorResponse::class.java)
             Log.d("HomeViewModel", "Parsed response: errors=${parsed.errors}, message=${parsed.message}")
             
@@ -672,7 +673,10 @@ class HomeViewModel(
                             errorsMap.entries
                                 .map { (field, messages) ->
                                     val translatedMessages = messages
-                                        .map { mapError(it) }
+                                        .map { msg ->
+                                            Log.d("HomeViewModel", "Translating message: $msg")
+                                            mapError(msg)
+                                        }
                                     val fieldName = when (field) {
                                         "name" -> "Имя"
                                         "email" -> "Email"
@@ -686,7 +690,10 @@ class HomeViewModel(
                         }
                         is List<*> -> {
                             errors.filterIsInstance<String>()
-                                .map { mapError(it) }
+                                .map { msg ->
+                                    Log.d("HomeViewModel", "Translating list message: $msg")
+                                    mapError(msg)
+                                }
                                 .joinToString("\n")
                         }
                         else -> ""
@@ -701,36 +708,38 @@ class HomeViewModel(
     }
     
     private fun mapError(message: String): String {
+        val msg = message.trim().lowercase()
+        
         return when {
-            message.contains("email has already been taken", ignoreCase = true) ->
-                "Пользователь с таким email уже существует"
-
-            message.contains("password must be at least", ignoreCase = true) ->
-                "Пароль должен быть не менее 8 символов"
-
-            message.contains("password confirmation does not match", ignoreCase = true) ->
-                "Пароли не совпадают"
-
-            message.contains("email must be a valid email", ignoreCase = true) ->
-                "Некорректный email"
-            
-            message.contains("validation.unique", ignoreCase = true) ->
-                "Это значение уже занято"
-            
-            message.contains("validation.required", ignoreCase = true) ->
-                "Это поле обязательно"
-            
-            message.contains("validation.min.string", ignoreCase = true) ->
+            msg.contains("validation.min.string") ->
                 "Значение слишком короткое"
             
-            message.contains("validation.min.numeric", ignoreCase = true) ->
+            msg.contains("validation.unique") ->
+                "Это значение уже занято"
+            
+            msg.contains("validation.required") ->
+                "Это поле обязательно"
+            
+            msg.contains("validation.min.numeric") ->
                 "Значение должно быть больше"
             
-            message.contains("validation.confirmed", ignoreCase = true) ->
+            msg.contains("validation.confirmed") ->
                 "Поле подтверждения не совпадает"
             
-            message.contains("validation.email", ignoreCase = true) ->
+            msg.contains("validation.email") ->
                 "Email должен быть корректным"
+
+            msg.contains("email has already been taken") ->
+                "Пользователь с таким email уже существует"
+
+            msg.contains("password must be at least") ->
+                "Пароль должен быть не менее 8 символов"
+
+            msg.contains("password confirmation does not match") ->
+                "Пароли не совпадают"
+
+            msg.contains("email must be a valid email") ->
+                "Некорректный email"
 
             else -> message
         }
