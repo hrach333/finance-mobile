@@ -169,6 +169,8 @@ private fun LoginForm(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+    val emailError = email.isNotBlank() && !isValidEmail(email)
 
     OutlinedTextField(
         value = email,
@@ -178,9 +180,15 @@ private fun LoginForm(
             .fillMaxWidth()
             .heightIn(min = 52.dp),
         singleLine = true,
-        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp)
+        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+        isError = emailError
     )
-    Spacer(modifier = Modifier.height(16.dp))
+    if (emailError) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Email должен быть корректным", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    
     OutlinedTextField(
         value = password,
         onValueChange = { password = it },
@@ -204,7 +212,7 @@ private fun LoginForm(
         }
     )
     Spacer(modifier = Modifier.height(24.dp))
-    val isEnabled = !loading && email.isNotBlank() && password.isNotBlank()
+    val isEnabled = !loading && email.isNotBlank() && !emailError && password.isNotBlank()
     Button(
         onClick = { sessionViewModel.login(email.trim(), password) },
         modifier = Modifier.fillMaxWidth(),
@@ -245,6 +253,10 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
     var passwordVisible by remember { mutableStateOf(false) }
     var passwordConfirmVisible by remember { mutableStateOf(false) }
     var acceptedTerms by remember { mutableStateOf(false) }
+    
+    val emailError = email.isNotBlank() && !isValidEmail(email)
+    val passwordError = password.isNotBlank() && password.length < 8
+    val passwordMismatch = passwordConfirm.isNotBlank() && password != passwordConfirm
 
     OutlinedTextField(
         value = name,
@@ -256,7 +268,8 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(fontSize = 16.sp)
     )
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(8.dp))
+    
     OutlinedTextField(
         value = email,
         onValueChange = { email = it },
@@ -265,9 +278,15 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             .fillMaxWidth()
             .heightIn(min = 52.dp),
         singleLine = true,
-        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp)
+        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+        isError = emailError
     )
-    Spacer(modifier = Modifier.height(16.dp))
+    if (emailError) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Email должен быть корректным", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    
     OutlinedTextField(
         value = password,
         onValueChange = { password = it },
@@ -277,6 +296,7 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             .heightIn(min = 52.dp),
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+        isError = passwordError,
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
             IconButton(
@@ -290,7 +310,12 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             }
         }
     )
-    Spacer(modifier = Modifier.height(16.dp))
+    if (passwordError) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Пароль должен быть не менее 8 символов", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    
     OutlinedTextField(
         value = passwordConfirm,
         onValueChange = { passwordConfirm = it },
@@ -300,6 +325,7 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             .heightIn(min = 52.dp),
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+        isError = passwordMismatch,
         visualTransformation = if (passwordConfirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
             IconButton(
@@ -313,6 +339,11 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
             }
         }
     )
+    if (passwordMismatch) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Пароли не совпадают", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
     Spacer(modifier = Modifier.height(16.dp))
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +382,8 @@ private fun RegisterForm(sessionViewModel: SessionViewModel, loading: Boolean) {
         )
     }
     Spacer(modifier = Modifier.height(24.dp))
-    val isEnabled = !loading && name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && passwordConfirm.isNotBlank() && acceptedTerms
+    val isEnabled = !loading && name.isNotBlank() && email.isNotBlank() && !emailError && 
+                    password.length >= 8 && !passwordError && password == passwordConfirm && !passwordMismatch && acceptedTerms
     Button(
         onClick = { sessionViewModel.register(name.trim(), email.trim(), password) },
         modifier = Modifier.fillMaxWidth(),
@@ -384,6 +416,9 @@ private fun ForgotPasswordForm(
     var passwordConfirm by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var passwordConfirmVisible by rememberSaveable { mutableStateOf(false) }
+    
+    val passwordError = password.isNotBlank() && password.length < 8
+    val passwordMismatch = passwordConfirm.isNotBlank() && password != passwordConfirm
 
     OutlinedTextField(
         value = email,
@@ -425,12 +460,15 @@ private fun ForgotPasswordForm(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
+        Spacer(Modifier.height(8.dp))
+        
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Новый пароль") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            isError = passwordError,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -441,12 +479,19 @@ private fun ForgotPasswordForm(
                 }
             }
         )
+        if (passwordError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Пароль должен быть не менее 8 символов", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(8.dp))
+        
         OutlinedTextField(
             value = passwordConfirm,
             onValueChange = { passwordConfirm = it },
             label = { Text("Повторите пароль") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            isError = passwordMismatch,
             visualTransformation = if (passwordConfirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { passwordConfirmVisible = !passwordConfirmVisible }) {
@@ -457,7 +502,12 @@ private fun ForgotPasswordForm(
                 }
             }
         )
-        Spacer(Modifier.height(4.dp))
+        if (passwordMismatch) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Пароли не совпадают", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        
         Button(
             onClick = {
                 sessionViewModel.resetPassword(email.trim(), code.trim(), password) {
@@ -469,7 +519,7 @@ private fun ForgotPasswordForm(
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !loading && code.isNotBlank() && password.isNotBlank() && passwordConfirm.isNotBlank()
+            enabled = !loading && code.isNotBlank() && password.length >= 8 && !passwordError && password == passwordConfirm && !passwordMismatch
         ) {
             if (loading) {
                 CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
@@ -483,6 +533,11 @@ private fun ForgotPasswordForm(
     TextButton(onClick = onBack) {
         Text("Вернуться к входу")
     }
+}
+
+private fun isValidEmail(email: String): Boolean {
+    val emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}$".toRegex()
+    return emailRegex.matches(email)
 }
 
 enum class AuthMode {
