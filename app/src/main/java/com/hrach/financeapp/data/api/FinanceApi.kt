@@ -11,8 +11,12 @@ import com.hrach.financeapp.data.dto.CreateGroupRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
+import com.hrach.financeapp.data.dto.ForgotPasswordRequest
+import com.hrach.financeapp.data.dto.ForgotPasswordResponse
 import com.hrach.financeapp.data.dto.LoginRequest
+import com.hrach.financeapp.data.dto.MessageResponse
 import com.hrach.financeapp.data.dto.RegisterRequest
+import com.hrach.financeapp.data.dto.ResetPasswordRequest
 import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
@@ -36,6 +40,12 @@ interface FinanceApi {
 
     @POST("login")
     suspend fun login(@Body request: LoginRequest): AuthResponseDto
+
+    @POST("forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ForgotPasswordResponse
+
+    @POST("reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): MessageResponse
 
     @GET("me")
     suspend fun me(): UserDto

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.ui.utils.accountTypeIcon
@@ -64,7 +65,13 @@ fun AccountCard(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(account.name, fontWeight = FontWeight.Bold)
+                Text(
+                    text = account.name,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false
+                )
                 Text(account.type.toAccountTypeLabel(), style = MaterialTheme.typography.bodySmall)
             }
 

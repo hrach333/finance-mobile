@@ -136,6 +136,36 @@ class SessionViewModel(
         }
     }
 
+    fun forgotPassword(email: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                repository.forgotPassword(email)
+                onSuccess()
+            } catch (e: Exception) {
+                _error.value = parseException(e)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    fun resetPassword(email: String, code: String, password: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                repository.resetPassword(email, code, password)
+                onSuccess()
+            } catch (e: Exception) {
+                _error.value = parseException(e)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             _loading.value = true
