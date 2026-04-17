@@ -1,0 +1,5 @@
+-keep class com.hrach.** { *; }
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
+-keepattributes *Annotation*
+-keep class kotlin.Metadata { *; }

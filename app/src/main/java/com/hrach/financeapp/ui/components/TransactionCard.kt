@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.ui.utils.categoryIcon
+import com.hrach.financeapp.ui.utils.getIconBackgroundColor
 
 @Composable
 fun TransactionCard(
@@ -49,14 +50,15 @@ fun TransactionCard(
                 modifier = Modifier
                     .size(42.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        color = getIconBackgroundColor(category?.iconKey).copy(alpha = 0.15f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = categoryIcon(category?.iconKey),
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = getIconBackgroundColor(category?.iconKey)
                 )
             }
 

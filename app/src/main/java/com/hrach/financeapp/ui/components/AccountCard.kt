@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.ui.utils.accountTypeIcon
 import com.hrach.financeapp.ui.utils.toAccountTypeLabel
+import com.hrach.financeapp.ui.utils.getAccountTypeColor
+import com.hrach.financeapp.ui.utils.getAccountTypeColor
 
 @Composable
 fun AccountCard(
@@ -53,14 +55,15 @@ fun AccountCard(
                 modifier = Modifier
                     .size(42.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        color = getAccountTypeColor(account.type).copy(alpha = 0.15f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = accountTypeIcon(account.type),
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = getAccountTypeColor(account.type)
                 )
             }
 

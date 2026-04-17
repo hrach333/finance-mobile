@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.ui.utils.categoryIconOptions
+import com.hrach.financeapp.ui.utils.getIconBackgroundColor
 import com.hrach.financeapp.viewmodel.HomeViewModel
 
 private fun accountTypeLabel(type: String): String {
@@ -245,9 +246,9 @@ fun CategoryEditorDialog(
                                 .size(56.dp)
                                 .background(
                                     color = if (iconKey == key) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                        getIconBackgroundColor(key).copy(alpha = 0.25f)
                                     } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
+                                        getIconBackgroundColor(key).copy(alpha = 0.1f)
                                     },
                                     shape = CircleShape
                                 )
@@ -256,7 +257,8 @@ fun CategoryEditorDialog(
                         ) {
                             Icon(
                                 imageVector = categoryIcon(key),
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = getIconBackgroundColor(key)
                             )
                         }
                     }
