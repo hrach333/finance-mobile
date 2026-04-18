@@ -603,9 +603,9 @@ class HomeViewModel(
                     max_tokens = 1000
                 )
 
-                //val response = ApiClient.aiService.getChatCompletion(request)
-                //val advice = response.choices.firstOrNull()?.message?.content
-                val advice = null
+                val response = ApiClient.aiService.getChatCompletion(request)
+                val advice = response.choices.firstOrNull()?.message?.content
+                //val advice = null
                 if (advice != null) {
                     _aiAdvice.value = advice
                 } else {

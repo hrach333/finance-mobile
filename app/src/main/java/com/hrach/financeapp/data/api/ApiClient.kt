@@ -8,10 +8,11 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object ApiClient {
     private const val BASE_URL = "https://finance.hrach.ru/api/"
-    private const val AI_BASE_URL = "http://127.0.0.1:1234"
+    private const val AI_BASE_URL = "https://aifinance.hrach.ru/"
 
     lateinit var sessionManager: SessionManager
         private set
@@ -33,12 +34,21 @@ object ApiClient {
             .addInterceptor(loggingInterceptor)
             .build()
     }
-
+    /*
     private val aiHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .build()
+
     }
+    *
+     */
+    private val aiHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(180, TimeUnit.SECONDS)
+        .writeTimeout(180, TimeUnit.SECONDS)
+        .callTimeout(180, TimeUnit.SECONDS)
+        .build()
 
     val financeApi: FinanceApi by lazy {
         Retrofit.Builder()
