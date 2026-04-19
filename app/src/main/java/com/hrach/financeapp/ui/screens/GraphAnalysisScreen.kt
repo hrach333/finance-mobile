@@ -27,8 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -165,28 +163,6 @@ fun GraphAnalysisScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) 
                     modifier = Modifier
                         .weight(1f)
                         .height(140.dp)
-                )
-            }
-        }
-
-        item {
-            Button(
-                onClick = {
-                    viewModel.getFinanceAdvice()
-                    showAIDialog = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "💡 Совет ИИ",
-                    style = MaterialTheme.typography.labelLarge
                 )
             }
         }
