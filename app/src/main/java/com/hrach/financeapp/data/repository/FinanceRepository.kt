@@ -20,6 +20,7 @@ import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
+import com.hrach.financeapp.data.dto.YandexMobileLoginRequest
 import com.hrach.financeapp.data.network.NetworkMonitor
 import com.hrach.financeapp.data.offline.OfflineManager
 import java.io.IOException
@@ -53,6 +54,8 @@ class FinanceRepository(
         api.register(RegisterRequest(name = name, email = email, password = password, passwordConfirmation = password))
 
     suspend fun login(email: String, password: String) = api.login(LoginRequest(email, password))
+
+    suspend fun loginWithYandex(oauthToken: String) = api.loginWithYandex(YandexMobileLoginRequest(oauthToken = oauthToken))
 
     suspend fun forgotPassword(email: String): ForgotPasswordResponse =
         api.forgotPassword(ForgotPasswordRequest(email))

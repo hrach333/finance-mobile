@@ -136,6 +136,24 @@ class SessionViewModel(
         }
     }
 
+    fun loginWithYandex(oauthToken: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val response = repository.loginWithYandex(oauthToken)
+                sessionManager.saveSession(response.token, response.user)
+                _currentUser.value = response.user
+                _authState.value = AuthState.Authenticated
+                onSuccess()
+            } catch (e: Exception) {
+                _error.value = parseException(e)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
     fun forgotPassword(email: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             _loading.value = true
