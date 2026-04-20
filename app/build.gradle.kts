@@ -14,6 +14,17 @@ android {
         targetSdk = 34
         versionCode = 6
         versionName = "1.0.4"
+
+        manifestPlaceholders["YANDEX_CLIENT_ID"] = providers
+            .gradleProperty("YANDEX_CLIENT_ID")
+            .orElse("")
+            .get()
+
+        buildConfigField(
+            "String",
+            "YANDEX_CLIENT_ID",
+            "\"${providers.gradleProperty("YANDEX_CLIENT_ID").orElse("").get()}\""
+        )
     }
 
     signingConfigs {
@@ -47,6 +58,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -87,6 +99,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    implementation("com.yandex.android:authsdk:3.1.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
