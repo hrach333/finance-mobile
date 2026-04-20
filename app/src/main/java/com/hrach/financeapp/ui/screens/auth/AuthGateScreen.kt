@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +60,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.R
 import com.hrach.financeapp.viewmodel.SessionViewModel
+import com.yandex.authsdk.YandexAuthException
+import com.yandex.authsdk.YandexAuthLoginOptions
+import com.yandex.authsdk.YandexAuthOptions
+import com.yandex.authsdk.YandexAuthResult
+import com.yandex.authsdk.YandexAuthSdk
 
 @Composable
 fun AuthGateScreen(sessionViewModel: SessionViewModel) {
@@ -112,6 +118,14 @@ fun AuthGateScreen(sessionViewModel: SessionViewModel) {
                             sessionViewModel.clearError()
                             infoMessage = ""
                             mode = AuthMode.ForgotPassword
+                        },
+                        onYandexTokenReceived = {
+                            infoMessage = "OAuth токен Яндекс получен. Передайте его на backend для обмена на токен приложения."
+                            sessionViewModel.clearError()
+                        },
+                        onYandexAuthError = {
+                            infoMessage = it
+                            sessionViewModel.clearError()
                         }
                     )
                     AuthMode.Register -> RegisterForm(sessionViewModel, loading)
@@ -168,12 +182,24 @@ fun AuthGateScreen(sessionViewModel: SessionViewModel) {
 private fun LoginForm(
     sessionViewModel: SessionViewModel,
     loading: Boolean,
-    onForgotPassword: () -> Unit
+    onForgotPassword: () -> Unit,
+    onYandexTokenReceived: (String) -> Unit,
+    onYandexAuthError: (String) -> Unit
 ) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val yandexAuthSdk = remember(context) {
+        YandexAuthSdk.create(YandexAuthOptions(context))
+    }
+    val yandexLauncher = rememberLauncherForActivityResult(yandexAuthSdk.contract) { result ->
+        when (result) {
+            is YandexAuthResult.Success -> onYandexTokenReceived(result.token.value)
+            is YandexAuthResult.Failure -> onYandexAuthError(formatYandexError(result.exception))
+            YandexAuthResult.Cancelled -> onYandexAuthError("Вход через Яндекс отменен")
+        }
+    }
     
     val emailError = email.isNotBlank() && !isValidEmail(email)
 
@@ -256,6 +282,21 @@ private fun LoginForm(
         Text(text = stringResource(R.string.login_with_yandex))
     }
     Spacer(modifier = Modifier.height(16.dp))
+    Button(
+        onClick = {
+            sessionViewModel.clearError()
+            yandexLauncher.launch(YandexAuthLoginOptions())
+        },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !loading,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFFFCC00),
+            contentColor = Color(0xFF111111)
+        )
+    ) {
+        Text("Войти через Яндекс")
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
@@ -268,6 +309,10 @@ private fun LoginForm(
             )
         }
     }
+}
+
+private fun formatYandexError(exception: YandexAuthException): String {
+    return exception.message ?: "Ошибка авторизации Яндекс"
 }
 
 @Composable
