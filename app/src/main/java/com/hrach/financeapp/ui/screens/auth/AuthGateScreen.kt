@@ -120,8 +120,8 @@ fun AuthGateScreen(sessionViewModel: SessionViewModel) {
                             mode = AuthMode.ForgotPassword
                         },
                         onYandexTokenReceived = {
-                            infoMessage = "OAuth токен Яндекс получен. Передайте его на backend для обмена на токен приложения."
-                            sessionViewModel.clearError()
+                            infoMessage = ""
+                            sessionViewModel.loginWithYandex(it)
                         },
                         onYandexAuthError = {
                             infoMessage = it

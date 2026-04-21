@@ -25,6 +25,7 @@ import com.hrach.financeapp.data.dto.UpdateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
+import com.hrach.financeapp.data.dto.YandexMobileLoginRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -40,6 +41,9 @@ interface FinanceApi {
 
     @POST("login")
     suspend fun login(@Body request: LoginRequest): AuthResponseDto
+
+    @POST("auth/yandex/mobile")
+    suspend fun loginWithYandex(@Body request: YandexMobileLoginRequest): AuthResponseDto
 
     @POST("forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ForgotPasswordResponse
