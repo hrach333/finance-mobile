@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.ui.utils.toTransactionLabel
 import com.hrach.financeapp.viewmodel.HomeViewModel
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +22,7 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
     val incomeCategories = categories.filter { it.type == "INCOME" }
     var type by remember { mutableStateOf("EXPENSE") }
     var amount by remember { mutableStateOf("") }
+    var transactionDate by remember { mutableStateOf(LocalDate.now().toString()) }
     var comment by remember { mutableStateOf("") }
     var accountExpanded by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -53,6 +55,12 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
                     }
                 }
                 OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Сумма") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = transactionDate,
+                    onValueChange = { transactionDate = it },
+                    label = { Text("Дата операции (ГГГГ-ММ-ДД)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 ExposedDropdownMenuBox(expanded = accountExpanded, onExpandedChange = { accountExpanded = !accountExpanded }) {
                     OutlinedTextField(value = accounts.firstOrNull { it.id == selectedAccountId }?.name ?: "", onValueChange = {}, readOnly = true, label = { Text("Счет") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
                     DropdownMenu(expanded = accountExpanded, onDismissRequest = { accountExpanded = false }) {
@@ -72,7 +80,7 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
             val parsedAmount = amount.toDoubleOrNull() ?: return@Button
             val accountId = selectedAccountId ?: return@Button
             val categoryId = selectedCategoryId ?: return@Button
-            viewModel.createTransaction(type, parsedAmount, accountId, categoryId, comment)
+            viewModel.createTransaction(type, parsedAmount, accountId, categoryId, transactionDate, comment)
             onSaved()
         }, modifier = Modifier.fillMaxWidth()) { Text("Сохранить") }
         }
