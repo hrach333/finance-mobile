@@ -1,7 +1,5 @@
 package com.hrach.financeapp.ui.screens.auth
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -258,28 +255,6 @@ private fun LoginForm(
         } else {
             Text("Войти")
         }
-    }
-    Spacer(modifier = Modifier.height(12.dp))
-    OutlinedButton(
-        onClick = {
-            val browserIntent = Intent(
-                Intent.ACTION_VIEW,
-                Uri.parse("https://finance.hrach.ru/auth/yandex/redirect")
-            )
-            runCatching {
-                context.startActivity(browserIntent)
-            }.onFailure {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.yandex_login_unavailable),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = !loading
-    ) {
-        Text(text = stringResource(R.string.login_with_yandex))
     }
     Spacer(modifier = Modifier.height(16.dp))
     Button(

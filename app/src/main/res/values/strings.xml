@@ -2,6 +2,4 @@
 <resources>
     <string name="app_name">Умный бюджет</string>
     <string name="app_title">Умный бюджет</string>
-    <string name="login_with_yandex">Войти через Яндекс</string>
-    <string name="yandex_login_unavailable">Не удалось открыть авторизацию Яндекса</string>
 </resources>
