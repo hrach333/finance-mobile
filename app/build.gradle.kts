@@ -28,7 +28,7 @@ android {
         buildConfigField(
             "boolean",
             "FEATURE_AI_HELP_BUTTON",
-            providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("true").get()
+            providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("false").get()
         )
     }
 
