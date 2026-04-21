@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.TransactionDto
+import com.hrach.financeapp.ui.utils.formatIsoDateForUi
 import com.hrach.financeapp.ui.utils.categoryIcon
 import com.hrach.financeapp.ui.utils.getIconBackgroundColor
 
@@ -72,6 +73,11 @@ fun TransactionCard(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+
+            Text(
+                text = formatIsoDateForUi(item.transactionDate),
+                style = MaterialTheme.typography.bodySmall
+            )
 
             Text(
                 text = "${item.amount} ₽",

@@ -23,6 +23,7 @@ import com.hrach.financeapp.data.network.AIPromptBuilder
 import com.hrach.financeapp.data.network.NetworkMonitor
 import com.hrach.financeapp.data.offline.OfflineManager
 import com.hrach.financeapp.data.repository.FinanceRepository
+import com.hrach.financeapp.ui.utils.parseUiOrIsoDateToIso
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -359,10 +360,9 @@ class HomeViewModel(
             return
         }
 
-        val normalizedTransactionDate = try {
-            LocalDate.parse(transactionDate.trim()).toString()
-        } catch (_: Exception) {
-            _error.value = "Некорректная дата. Используйте формат ГГГГ-ММ-ДД"
+        val normalizedTransactionDate = parseUiOrIsoDateToIso(transactionDate)
+        if (normalizedTransactionDate == null) {
+            _error.value = "Некорректная дата. Используйте формат ДД.ММ.ГГГГ"
             return
         }
         
