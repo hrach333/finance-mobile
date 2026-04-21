@@ -345,7 +345,7 @@ class HomeViewModel(
     fun accountName(accountId: Int): String? = _accounts.value.firstOrNull { it.id == accountId }?.name
     fun categoryName(categoryId: Int?): String? = _categories.value.firstOrNull { it.id == categoryId }?.name
 
-    fun createTransaction(type: String, amount: Double, accountId: Int, categoryId: Int, comment: String) {
+    fun createTransaction(type: String, amount: Double, accountId: Int, categoryId: Int, transactionDate: String, comment: String) {
         val groupId = _selectedGroupId.value ?: return
         
         // Базовые проверки
@@ -356,6 +356,13 @@ class HomeViewModel(
 
         if ((type == "INCOME" || type == "EXPENSE") && categoryId <= 0) {
             _error.value = "Не выбрана категория"
+            return
+        }
+
+        val normalizedTransactionDate = try {
+            LocalDate.parse(transactionDate.trim()).toString()
+        } catch (_: Exception) {
+            _error.value = "Некорректная дата. Используйте формат ГГГГ-ММ-ДД"
             return
         }
         
@@ -376,7 +383,7 @@ class HomeViewModel(
                         amount = amount,
                         currency = currency,
                         categoryId = categoryId,
-                        transactionDate = LocalDate.now().toString(),
+                        transactionDate = normalizedTransactionDate,
                         comment = comment
                     )
                 )
