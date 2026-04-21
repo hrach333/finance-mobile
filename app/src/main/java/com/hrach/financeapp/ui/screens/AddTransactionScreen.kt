@@ -3,15 +3,18 @@ package com.hrach.financeapp.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hrach.financeapp.ui.utils.formatIsoDateForUi
+import com.hrach.financeapp.ui.utils.parseUiOrIsoDateToIso
 import com.hrach.financeapp.ui.utils.toTransactionLabel
 import com.hrach.financeapp.viewmodel.HomeViewModel
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,7 +25,8 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
     val incomeCategories = categories.filter { it.type == "INCOME" }
     var type by remember { mutableStateOf("EXPENSE") }
     var amount by remember { mutableStateOf("") }
-    var transactionDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var transactionDate by remember { mutableStateOf(formatIsoDateForUi(LocalDate.now().toString())) }
+    var showDatePicker by remember { mutableStateOf(false) }
     var comment by remember { mutableStateOf("") }
     var accountExpanded by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -58,7 +62,12 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
                 OutlinedTextField(
                     value = transactionDate,
                     onValueChange = { transactionDate = it },
-                    label = { Text("Дата операции (ГГГГ-ММ-ДД)") },
+                    label = { Text("Дата операции (ДД.ММ.ГГГГ)") },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(imageVector = Icons.Filled.DateRange, contentDescription = "Выбрать дату")
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 ExposedDropdownMenuBox(expanded = accountExpanded, onExpandedChange = { accountExpanded = !accountExpanded }) {
@@ -80,9 +89,33 @@ fun AddTransactionScreen(viewModel: HomeViewModel, paddingValues: PaddingValues,
             val parsedAmount = amount.toDoubleOrNull() ?: return@Button
             val accountId = selectedAccountId ?: return@Button
             val categoryId = selectedCategoryId ?: return@Button
-            viewModel.createTransaction(type, parsedAmount, accountId, categoryId, transactionDate, comment)
+            val transactionDateIso = parseUiOrIsoDateToIso(transactionDate) ?: return@Button
+            viewModel.createTransaction(type, parsedAmount, accountId, categoryId, transactionDateIso, comment)
             onSaved()
         }, modifier = Modifier.fillMaxWidth()) { Text("Сохранить") }
+        }
+    }
+
+    if (showDatePicker) {
+        val selectedDateMillis = parseUiOrIsoDateToIso(transactionDate)
+            ?.let { LocalDate.parse(it).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val selectedMillis = datePickerState.selectedDateMillis
+                    if (selectedMillis != null) {
+                        transactionDate = formatIsoDateForUi(
+                            java.time.Instant.ofEpochMilli(selectedMillis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                        )
+                    }
+                    showDatePicker = false
+                }) { Text("Выбрать") }
+            },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Отмена") } }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
