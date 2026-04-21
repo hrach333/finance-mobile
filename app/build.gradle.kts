@@ -25,6 +25,11 @@ android {
             "YANDEX_CLIENT_ID",
             "\"${providers.gradleProperty("YANDEX_CLIENT_ID").orElse("").get()}\""
         )
+        buildConfigField(
+            "boolean",
+            "FEATURE_AI_HELP_BUTTON",
+            providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("true").get()
+        )
     }
 
     signingConfigs {

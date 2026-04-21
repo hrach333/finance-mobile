@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +56,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hrach.financeapp.R
+import com.hrach.financeapp.config.FeatureFlags
 import com.hrach.financeapp.viewmodel.HomeViewModel
 import kotlin.math.min
 
@@ -141,7 +143,21 @@ fun GraphAnalysisScreen(viewModel: HomeViewModel, paddingValues: PaddingValues) 
             )
         }
 
+        if (FeatureFlags.aiHelpButtonEnabled) {
             item {
+                Button(
+                    onClick = {
+                        showAIDialog = true
+                        viewModel.getFinanceAdvice()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Помощь ИИ")
+                }
+            }
+        }
+
+        item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
