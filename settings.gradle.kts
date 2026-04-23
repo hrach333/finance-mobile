@@ -41,3 +41,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SmartBudget"
 include(":app")
+include(":composeApp")
