@@ -45,6 +45,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hrach.financeapp.data.model.FinanceOverview
+import com.hrach.financeapp.data.model.OverviewColorToken
+import com.hrach.financeapp.data.model.TransactionKind
+import com.hrach.financeapp.data.model.TransactionOverview
+import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
+import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 
 private enum class MvpTab(val title: String, val glyph: String) {
     Home("Главная", "Г"),
@@ -53,34 +59,13 @@ private enum class MvpTab(val title: String, val glyph: String) {
     Analytics("Аналитика", "А")
 }
 
-private data class DemoTransaction(
-    val category: String,
-    val comment: String,
-    val amount: String,
-    val date: String,
-    val type: TransactionType,
-    val tint: Color
-)
-
-private enum class TransactionType {
-    Income,
-    Expense
-}
-
 private val backgroundGradient = Brush.verticalGradient(
     colors = listOf(Color(0xFFCCCFDF), Color(0xFFEFD6EF), Color(0xFFABA7CE))
 )
 
-private val demoTransactions = listOf(
-    DemoTransaction("Зарплата", "Основная карта", "+150 000 ₽", "23.04", TransactionType.Income, Color(0xFF16A34A)),
-    DemoTransaction("Продукты", "Семья", "-8 420 ₽", "22.04", TransactionType.Expense, Color(0xFFE85B6A)),
-    DemoTransaction("Такси", "Транспорт", "-1 150 ₽", "21.04", TransactionType.Expense, Color(0xFF4C5E8B)),
-    DemoTransaction("Подработка", "Наличные", "+18 000 ₽", "20.04", TransactionType.Income, Color(0xFF2D9CDB)),
-    DemoTransaction("Аптека", "Здоровье", "-2 340 ₽", "19.04", TransactionType.Expense, Color(0xFF9B6ACB))
-)
 
 @Composable
-fun App() {
+fun App(repository: FinanceOverviewRepository = DemoFinanceOverviewRepository()) {
     MaterialTheme(
         colors = lightColors(
             primary = Color(0xFF5E4B8B),
@@ -92,6 +77,7 @@ fun App() {
         )
     ) {
         var selectedTab by remember { mutableStateOf(MvpTab.Home) }
+        val overview = remember(repository) { repository.getOverview() }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
             ResponsiveShell(
@@ -99,10 +85,10 @@ fun App() {
                 onTabSelected = { selectedTab = it }
             ) {
                 when (selectedTab) {
-                    MvpTab.Home -> HomeDashboard()
-                    MvpTab.Transactions -> TransactionsDashboard()
-                    MvpTab.Accounts -> AccountsDashboard()
-                    MvpTab.Analytics -> AnalyticsDashboard()
+                    MvpTab.Home -> HomeDashboard(overview)
+                    MvpTab.Transactions -> TransactionsDashboard(overview)
+                    MvpTab.Accounts -> AccountsDashboard(overview)
+                    MvpTab.Analytics -> AnalyticsDashboard(overview)
                 }
             }
         }
@@ -227,10 +213,10 @@ private fun NavigationGlyph(tab: MvpTab, selected: Boolean) {
 }
 
 @Composable
-private fun HomeDashboard() {
+private fun HomeDashboard(overview: FinanceOverview) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            HeaderBlock(title = "Главная", subtitle = "Пользователь: demo@smartbudget.app")
+            HeaderBlock(title = "Главная", subtitle = "Пользователь: ${overview.userEmail}")
         }
 
         item {
@@ -238,18 +224,18 @@ private fun HomeDashboard() {
         }
 
         item {
-            GroupSelectorPreview()
+            GroupSelectorPreview(overview.activeGroupName)
         }
 
         item {
-            SummaryHeroCard(balance = "376 820 ₽", income = "168 000 ₽", expense = "42 850 ₽")
+            SummaryHeroCard(overview)
         }
 
         item {
             SectionTitle("Последние операции")
         }
 
-        items(demoTransactions.take(4)) { transaction ->
+        items(overview.transactions.take(4)) { transaction ->
             TransactionCard(transaction)
         }
 
@@ -268,49 +254,42 @@ private fun HomeDashboard() {
 }
 
 @Composable
-private fun TransactionsDashboard() {
+private fun TransactionsDashboard(overview: FinanceOverview) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             HeaderBlock(title = "Операции", subtitle = "Демонстрационный список до подключения Laravel API")
         }
-        items(demoTransactions) { transaction ->
+        items(overview.transactions) { transaction ->
             TransactionCard(transaction)
         }
     }
 }
 
 @Composable
-private fun AccountsDashboard() {
+private fun AccountsDashboard(overview: FinanceOverview) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             HeaderBlock(title = "Счета", subtitle = "Баланс по семейной группе")
         }
-        item {
-            AccountPreviewCard("Основная карта", "93 520 ₽", "Карта для ежедневных расходов", Color(0xFF4C5E8B))
-        }
-        item {
-            AccountPreviewCard("Наличные", "18 300 ₽", "Домашний резерв", Color(0xFF6B6579))
-        }
-        item {
-            AccountPreviewCard("Накопления", "265 000 ₽", "Цель: отпуск и подушка", Color(0xFF5E4B8B))
+        items(overview.accounts) { account ->
+            AccountPreviewCard(
+                title = account.title,
+                balance = account.balanceLabel,
+                subtitle = account.subtitle,
+                tint = account.colorToken.toColor()
+            )
         }
     }
 }
 
 @Composable
-private fun AnalyticsDashboard() {
+private fun AnalyticsDashboard(overview: FinanceOverview) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             HeaderBlock(title = "Аналитика", subtitle = "Пока статическая, затем будет из API")
         }
-        item {
-            InsightCard("Баланс месяца положительный: доходы выше расходов на 125 150 ₽.")
-        }
-        item {
-            InsightCard("Самая крупная категория расходов сейчас: семья и продукты.")
-        }
-        item {
-            InsightCard("Следующий технический шаг: общий API-клиент и авторизация в Multiplatform.")
+        items(overview.insights) { insight ->
+            InsightCard(insight)
         }
     }
 }
@@ -366,7 +345,7 @@ private fun OfflineStatusCard() {
 }
 
 @Composable
-private fun GroupSelectorPreview() {
+private fun GroupSelectorPreview(groupName: String) {
     Card(
         shape = RoundedCornerShape(24.dp),
         backgroundColor = Color(0xFFF9F6FC),
@@ -381,7 +360,7 @@ private fun GroupSelectorPreview() {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Группа", color = Color(0xFF6B6579), fontSize = 12.sp)
-                Text("Семейный бюджет", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                Text(groupName, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
             }
             Button(
                 onClick = {},
@@ -396,7 +375,7 @@ private fun GroupSelectorPreview() {
 }
 
 @Composable
-private fun SummaryHeroCard(balance: String, income: String, expense: String) {
+private fun SummaryHeroCard(overview: FinanceOverview) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             modifier = Modifier
@@ -433,14 +412,14 @@ private fun SummaryHeroCard(balance: String, income: String, expense: String) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("Общий баланс", color = Color(0xFF454545).copy(alpha = 0.78f), style = MaterialTheme.typography.subtitle1)
-                Text(balance, color = Color(0xFF454545), style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
-                Text("4 счета, 2 участника группы", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                Text(overview.summary.balanceLabel, color = Color(0xFF454545), style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
+                Text(overview.summary.subtitle, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
             }
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryStatCard("Расходы", expense, false, Modifier.weight(1f))
-            SummaryStatCard("Доходы", income, true, Modifier.weight(1f))
+            SummaryStatCard("Расходы", overview.summary.expenseLabel, false, Modifier.weight(1f))
+            SummaryStatCard("Доходы", overview.summary.incomeLabel, true, Modifier.weight(1f))
         }
     }
 }
@@ -486,7 +465,9 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun TransactionCard(transaction: DemoTransaction) {
+private fun TransactionCard(transaction: TransactionOverview) {
+    val tint = transaction.colorToken.toColor()
+
     Card(
         backgroundColor = Color(0xFFF4EDF7),
         elevation = 3.dp,
@@ -500,19 +481,19 @@ private fun TransactionCard(transaction: DemoTransaction) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
-                modifier = Modifier.size(42.dp).clip(CircleShape).background(transaction.tint.copy(alpha = 0.15f)),
+                modifier = Modifier.size(42.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(transaction.category.take(1), color = transaction.tint, fontWeight = FontWeight.Bold)
+                Text(transaction.category.take(1), color = tint, fontWeight = FontWeight.Bold)
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(transaction.category, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
                 Text(transaction.comment, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
             }
-            Text(transaction.date, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+            Text(transaction.dateLabel, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
             Text(
-                transaction.amount,
-                color = if (transaction.type == TransactionType.Income) Color(0xFF16A34A) else Color(0xFFDC2626),
+                transaction.amountLabel,
+                color = if (transaction.kind == TransactionKind.Income) Color(0xFF16A34A) else Color(0xFFDC2626),
                 fontWeight = FontWeight.Bold
             )
         }
@@ -576,3 +557,14 @@ private fun InsightCard(text: String) {
         Text(text = text, modifier = Modifier.padding(18.dp), color = Color(0xFF2F2B3A))
     }
 }
+
+private fun OverviewColorToken.toColor(): Color {
+    return when (this) {
+        OverviewColorToken.Income -> Color(0xFF16A34A)
+        OverviewColorToken.Expense -> Color(0xFFE85B6A)
+        OverviewColorToken.Primary -> Color(0xFF5E4B8B)
+        OverviewColorToken.Secondary -> Color(0xFF4C5E8B)
+        OverviewColorToken.Muted -> Color(0xFF6B6579)
+    }
+}
+
