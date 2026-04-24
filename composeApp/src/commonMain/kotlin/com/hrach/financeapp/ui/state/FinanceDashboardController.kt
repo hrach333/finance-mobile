@@ -92,6 +92,7 @@ class FinanceDashboardController(
         type: String,
         amount: Double,
         accountId: Int,
+        categoryId: Int,
         transactionDate: String,
         comment: String
     ): FinanceDashboardEvent {
@@ -108,7 +109,7 @@ class FinanceDashboardController(
                 type = type,
                 amount = amount,
                 currency = account.currency,
-                categoryId = null,
+                categoryId = categoryId,
                 transactionDate = transactionDate,
                 comment = comment.takeIf { it.isNotBlank() }
             )
@@ -120,6 +121,7 @@ class FinanceDashboardController(
         type: String,
         amount: Double,
         accountId: Int,
+        categoryId: Int,
         transactionDate: String,
         comment: String
     ): FinanceDashboardEvent {
@@ -138,7 +140,7 @@ class FinanceDashboardController(
                 type = type,
                 amount = amount,
                 currency = account.currency,
-                categoryId = transaction.categoryId,
+                categoryId = categoryId,
                 transactionDate = transactionDate,
                 comment = comment.takeIf { it.isNotBlank() }
             )

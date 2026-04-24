@@ -6,6 +6,7 @@ data class FinanceOverview(
     val activeGroupName: String,
     val summary: FinanceSummary,
     val accounts: List<AccountOverview>,
+    val categories: List<CategoryOverview> = emptyList(),
     val transactions: List<TransactionOverview>,
     val insights: List<String>
 )
@@ -54,6 +55,14 @@ enum class TransactionKind {
     Income,
     Expense
 }
+
+data class CategoryOverview(
+    val id: Int,
+    val groupId: Int,
+    val type: String,
+    val name: String,
+    val iconKey: String? = null
+)
 
 enum class OverviewColorToken {
     Income,

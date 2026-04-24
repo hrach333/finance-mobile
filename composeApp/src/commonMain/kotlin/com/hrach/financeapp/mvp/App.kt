@@ -196,17 +196,17 @@ private fun FinanceOverviewApp(
                         DashboardTab.Home -> HomeOverviewScreen(loadedOverview, onLogout)
                         DashboardTab.Transactions -> TransactionsOverviewScreen(
                             overview = loadedOverview,
-                            onCreateTransaction = { type, amount, accountId, date, comment ->
+                            onCreateTransaction = { type, amount, accountId, categoryId, date, comment ->
                                 coroutineScope.launch {
                                     applyDashboardEvent(
-                                        dashboardController.createTransaction(type, amount, accountId, date, comment)
+                                        dashboardController.createTransaction(type, amount, accountId, categoryId, date, comment)
                                     )
                                 }
                             },
-                            onUpdateTransaction = { transaction, type, amount, accountId, date, comment ->
+                            onUpdateTransaction = { transaction, type, amount, accountId, categoryId, date, comment ->
                                 coroutineScope.launch {
                                     applyDashboardEvent(
-                                        dashboardController.updateTransaction(transaction, type, amount, accountId, date, comment)
+                                        dashboardController.updateTransaction(transaction, type, amount, accountId, categoryId, date, comment)
                                     )
                                 }
                             },

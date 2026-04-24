@@ -1,6 +1,7 @@
 package com.hrach.financeapp.data.repository
 
 import com.hrach.financeapp.data.model.AccountOverview
+import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.FinanceSummary
 import com.hrach.financeapp.data.model.OverviewColorToken
@@ -10,6 +11,13 @@ import com.hrach.financeapp.data.model.TransactionOverview
 class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository, TransactionMutationsRepository {
     private var nextAccountId = 4
     private var nextTransactionId = 6
+    private val categories = listOf(
+        CategoryOverview(id = 1, groupId = 1, type = "EXPENSE", name = "Продукты", iconKey = "shopping"),
+        CategoryOverview(id = 2, groupId = 1, type = "EXPENSE", name = "Транспорт", iconKey = "transport"),
+        CategoryOverview(id = 3, groupId = 1, type = "EXPENSE", name = "Здоровье", iconKey = "health"),
+        CategoryOverview(id = 4, groupId = 1, type = "INCOME", name = "Зарплата", iconKey = "salary"),
+        CategoryOverview(id = 5, groupId = 1, type = "INCOME", name = "Подработка", iconKey = "work")
+    )
     private val accounts = mutableListOf(
         AccountOverview(
             id = 1,
@@ -53,6 +61,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             id = 1,
             groupId = 1,
             accountId = 1,
+            categoryId = 4,
             category = "Зарплата",
             comment = "Основная карта",
             amount = 150_000.0,
@@ -66,6 +75,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             id = 2,
             groupId = 1,
             accountId = 1,
+            categoryId = 1,
             category = "Продукты",
             comment = "Семья",
             amount = 8_420.0,
@@ -79,6 +89,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             id = 3,
             groupId = 1,
             accountId = 1,
+            categoryId = 2,
             category = "Такси",
             comment = "Транспорт",
             amount = 1_150.0,
@@ -92,6 +103,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             id = 4,
             groupId = 1,
             accountId = 2,
+            categoryId = 5,
             category = "Подработка",
             comment = "Наличные",
             amount = 18_000.0,
@@ -105,6 +117,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             id = 5,
             groupId = 1,
             accountId = 1,
+            categoryId = 3,
             category = "Аптека",
             comment = "Здоровье",
             amount = 2_340.0,
@@ -128,6 +141,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
                 subtitle = "4 счета, 2 участника группы"
             ),
             accounts = accounts.toList(),
+            categories = categories,
             transactions = transactions.toList(),
             insights = listOf(
                 "Баланс месяца положительный: доходы выше расходов на 125 150 ₽.",
@@ -213,7 +227,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
                 accountId = accountId,
                 createdBy = createdBy,
                 categoryId = categoryId,
-                category = type.toDemoTransactionTypeLabel(),
+                category = categories.firstOrNull { it.id == categoryId }?.name ?: type.toDemoTransactionTypeLabel(),
                 comment = comment?.takeIf { it.isNotBlank() }
                     ?: accounts.firstOrNull { it.id == accountId }?.title
                     ?: "Счет #$accountId",
@@ -249,7 +263,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             accountId = accountId,
             createdBy = createdBy,
             categoryId = categoryId,
-            category = type.toDemoTransactionTypeLabel(),
+            category = categories.firstOrNull { it.id == categoryId }?.name ?: type.toDemoTransactionTypeLabel(),
             comment = comment?.takeIf { it.isNotBlank() }
                 ?: accounts.firstOrNull { it.id == accountId }?.title
                 ?: "Счет #$accountId",

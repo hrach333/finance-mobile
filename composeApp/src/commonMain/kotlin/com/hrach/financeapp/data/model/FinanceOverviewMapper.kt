@@ -52,6 +52,15 @@ fun toFinanceOverview(
                 colorToken = account.type.toAccountColorToken()
             )
         },
+        categories = categories.map { category ->
+            CategoryOverview(
+                id = category.id,
+                groupId = category.groupId,
+                type = category.type,
+                name = category.name,
+                iconKey = category.iconKey
+            )
+        },
         transactions = transactions
             .sortedByDescending { it.transactionDate }
             .map { transaction ->

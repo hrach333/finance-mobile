@@ -34,16 +34,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.model.AccountOverview
+import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
+import com.hrach.financeapp.ui.utils.formatIsoDateForUi
+import com.hrach.financeapp.ui.utils.parseUiOrIsoDateToIso
 
 @Composable
 fun TransactionsOverviewScreen(
     overview: FinanceOverview,
-    onCreateTransaction: (String, Double, Int, String, String) -> Unit,
-    onUpdateTransaction: (TransactionOverview, String, Double, Int, String, String) -> Unit,
+    onCreateTransaction: (String, Double, Int, Int, String, String) -> Unit,
+    onUpdateTransaction: (TransactionOverview, String, Double, Int, Int, String, String) -> Unit,
     onDeleteTransaction: (TransactionOverview) -> Unit
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -76,9 +79,10 @@ fun TransactionsOverviewScreen(
         TransactionOverviewEditorDialog(
             title = "Новая операция",
             accounts = overview.accounts,
+            categories = overview.categories,
             onDismiss = { showCreateDialog = false },
-            onSave = { type, amount, accountId, date, comment ->
-                onCreateTransaction(type, amount, accountId, date, comment)
+            onSave = { type, amount, accountId, categoryId, date, comment ->
+                onCreateTransaction(type, amount, accountId, categoryId, date, comment)
                 showCreateDialog = false
             }
         )
@@ -88,14 +92,16 @@ fun TransactionsOverviewScreen(
         TransactionOverviewEditorDialog(
             title = "Редактировать операцию",
             accounts = overview.accounts,
+            categories = overview.categories,
             initialType = if (transaction.kind == TransactionKind.Income) "INCOME" else "EXPENSE",
             initialAmount = transaction.amount.toString(),
             initialAccountId = transaction.accountId,
-            initialDate = transaction.transactionDate,
+            initialCategoryId = transaction.categoryId,
+            initialDate = formatIsoDateForUi(transaction.transactionDate),
             initialComment = transaction.comment,
             onDismiss = { editTarget = null },
-            onSave = { type, amount, accountId, date, comment ->
-                onUpdateTransaction(transaction, type, amount, accountId, date, comment)
+            onSave = { type, amount, accountId, categoryId, date, comment ->
+                onUpdateTransaction(transaction, type, amount, accountId, categoryId, date, comment)
                 editTarget = null
             }
         )
@@ -187,20 +193,24 @@ fun TransactionOverviewCard(
 private fun TransactionOverviewEditorDialog(
     title: String,
     accounts: List<AccountOverview>,
+    categories: List<CategoryOverview>,
     initialType: String = "EXPENSE",
     initialAmount: String = "",
     initialAccountId: Int? = accounts.firstOrNull()?.id,
-    initialDate: String = "2026-04-24",
+    initialCategoryId: Int? = categories.firstOrNull { it.type == initialType }?.id,
+    initialDate: String = "24.04.2026",
     initialComment: String = "",
     onDismiss: () -> Unit,
-    onSave: (String, Double, Int, String, String) -> Unit
+    onSave: (String, Double, Int, Int, String, String) -> Unit
 ) {
     var type by remember { mutableStateOf(initialType) }
     var amount by remember { mutableStateOf(initialAmount) }
     var accountId by remember { mutableStateOf(initialAccountId) }
-    var date by remember { mutableStateOf(initialDate.takeIf { it.isNotBlank() } ?: "2026-04-24") }
+    var categoryId by remember { mutableStateOf(initialCategoryId) }
+    var date by remember { mutableStateOf(initialDate.takeIf { it.isNotBlank() } ?: "24.04.2026") }
     var comment by remember { mutableStateOf(initialComment) }
     var error by remember { mutableStateOf<String?>(null) }
+    val currentCategories = categories.filter { it.type == type }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -209,11 +219,14 @@ private fun TransactionOverviewEditorDialog(
                 onClick = {
                     val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
                     val selectedAccountId = accountId
+                    val selectedCategoryId = categoryId
+                    val isoDate = parseUiOrIsoDateToIso(date)
                     when {
                         selectedAccountId == null -> error = "Выберите счет"
+                        selectedCategoryId == null -> error = "Выберите категорию"
                         parsedAmount == null || parsedAmount <= 0.0 -> error = "Введите корректную сумму"
-                        date.isBlank() -> error = "Введите дату"
-                        else -> onSave(type, parsedAmount, selectedAccountId, date.trim(), comment.trim())
+                        isoDate == null -> error = "Введите дату в формате ДД.ММ.ГГГГ"
+                        else -> onSave(type, parsedAmount, selectedAccountId, selectedCategoryId, isoDate, comment.trim())
                     }
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
@@ -230,8 +243,14 @@ private fun TransactionOverviewEditorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TransactionTypeButton("EXPENSE", type, "Расход") { type = it }
-                    TransactionTypeButton("INCOME", type, "Доход") { type = it }
+                    TransactionTypeButton("EXPENSE", type, "Расход") {
+                        type = it
+                        categoryId = categories.firstOrNull { category -> category.type == it }?.id
+                    }
+                    TransactionTypeButton("INCOME", type, "Доход") {
+                        type = it
+                        categoryId = categories.firstOrNull { category -> category.type == it }?.id
+                    }
                 }
 
                 TextField(
@@ -251,7 +270,7 @@ private fun TransactionOverviewEditorDialog(
                         date = it
                         error = null
                     },
-                    label = { Text("Дата, например 2026-04-24") },
+                    label = { Text("Дата, например 24.04.2026") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -282,6 +301,28 @@ private fun TransactionOverviewEditorDialog(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(account.title)
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Категория", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                    currentCategories.forEach { category ->
+                        val selected = category.id == categoryId
+                        Button(
+                            onClick = {
+                                categoryId = category.id
+                                error = null
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = if (selected) Color(0xFF5E4B8B) else Color(0xFFF1E7FB),
+                                contentColor = if (selected) Color.White else Color(0xFF5E4B8B)
+                            ),
+                            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(category.name)
                         }
                     }
                 }
