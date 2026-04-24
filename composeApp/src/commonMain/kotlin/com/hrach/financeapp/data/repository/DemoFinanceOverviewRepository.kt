@@ -8,7 +8,7 @@ import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
 
 class DemoFinanceOverviewRepository : FinanceOverviewRepository {
-    override fun getOverview(): FinanceOverview {
+    override suspend fun getOverview(): FinanceOverview {
         return FinanceOverview(
             userEmail = "demo@smartbudget.app",
             activeGroupName = "Семейный бюджет",

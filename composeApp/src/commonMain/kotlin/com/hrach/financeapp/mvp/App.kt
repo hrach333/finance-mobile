@@ -33,6 +33,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,20 +78,53 @@ fun App(repository: FinanceOverviewRepository = DemoFinanceOverviewRepository())
         )
     ) {
         var selectedTab by remember { mutableStateOf(MvpTab.Home) }
-        val overview = remember(repository) { repository.getOverview() }
+        var overview by remember(repository) { mutableStateOf<FinanceOverview?>(null) }
+        var loadingError by remember(repository) { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(repository) {
+            loadingError = null
+            overview = runCatching { repository.getOverview() }
+                .onFailure { loadingError = it.message ?: "Не удалось загрузить данные" }
+                .getOrNull()
+        }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
             ResponsiveShell(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it }
             ) {
-                when (selectedTab) {
-                    MvpTab.Home -> HomeDashboard(overview)
-                    MvpTab.Transactions -> TransactionsDashboard(overview)
-                    MvpTab.Accounts -> AccountsDashboard(overview)
-                    MvpTab.Analytics -> AnalyticsDashboard(overview)
+                val loadedOverview = overview
+                if (loadedOverview == null) {
+                    LoadingDashboard(error = loadingError)
+                } else {
+                    when (selectedTab) {
+                        MvpTab.Home -> HomeDashboard(loadedOverview)
+                        MvpTab.Transactions -> TransactionsDashboard(loadedOverview)
+                        MvpTab.Accounts -> AccountsDashboard(loadedOverview)
+                        MvpTab.Analytics -> AnalyticsDashboard(loadedOverview)
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LoadingDashboard(error: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        HeaderBlock(title = "SmartBudget", subtitle = "Загрузка данных")
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            backgroundColor = Color(0xFFF9F6FC),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+            elevation = 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = error ?: "Подключаем финансовые данные...",
+                modifier = Modifier.padding(18.dp),
+                color = if (error == null) Color(0xFF2F2B3A) else Color(0xFFE85B6A)
+            )
         }
     }
 }
@@ -567,4 +601,3 @@ private fun OverviewColorToken.toColor(): Color {
         OverviewColorToken.Muted -> Color(0xFF6B6579)
     }
 }
-
