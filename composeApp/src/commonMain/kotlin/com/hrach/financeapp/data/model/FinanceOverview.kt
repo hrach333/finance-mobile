@@ -2,6 +2,7 @@ package com.hrach.financeapp.data.model
 
 data class FinanceOverview(
     val userEmail: String,
+    val activeGroupId: Int? = null,
     val activeGroupName: String,
     val summary: FinanceSummary,
     val accounts: List<AccountOverview>,
@@ -17,7 +18,16 @@ data class FinanceSummary(
 )
 
 data class AccountOverview(
+    val id: Int? = null,
+    val groupId: Int? = null,
+    val userId: Int? = null,
     val title: String,
+    val type: String = "CASH",
+    val currency: String = "RUB",
+    val initialBalance: Double = 0.0,
+    val currentBalance: Double = 0.0,
+    val shared: Boolean = true,
+    val isActive: Boolean = true,
     val balanceLabel: String,
     val subtitle: String,
     val colorToken: OverviewColorToken

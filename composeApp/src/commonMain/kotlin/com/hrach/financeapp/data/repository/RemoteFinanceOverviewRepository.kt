@@ -1,5 +1,7 @@
 package com.hrach.financeapp.data.repository
 
+import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
 
@@ -7,7 +9,7 @@ class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
     private val periodProvider: FinancePeriodProvider,
     private val preferredGroupId: Int? = null
-) : FinanceOverviewRepository {
+) : FinanceOverviewRepository, AccountMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
         val user = dataSource.me()
         val groups = dataSource.getGroups()
@@ -38,6 +40,57 @@ class RemoteFinanceOverviewRepository(
             summary = dataSource.getSummary(groupId, period.startDate, period.endDate),
             members = dataSource.getGroupMembers(groupId)
         )
+    }
+
+    override suspend fun createAccount(
+        groupId: Int,
+        name: String,
+        type: String,
+        initialBalance: Double,
+        shared: Boolean
+    ) {
+        dataSource.createAccount(
+            CreateAccountRequest(
+                groupId = groupId,
+                userId = null,
+                name = name.trim(),
+                type = type,
+                currency = "RUB",
+                initialBalance = initialBalance,
+                shared = shared
+            )
+        )
+    }
+
+    override suspend fun updateAccount(
+        accountId: Int,
+        groupId: Int,
+        userId: Int?,
+        name: String,
+        type: String,
+        currency: String,
+        initialBalance: Double,
+        shared: Boolean,
+        isActive: Boolean
+    ) {
+        dataSource.updateAccount(
+            accountId,
+            UpdateAccountRequest(
+                groupId = groupId,
+                userId = userId,
+                name = name.trim(),
+                type = type,
+                currency = currency,
+                initialBalance = initialBalance,
+                currentBalance = initialBalance,
+                shared = shared,
+                isActive = isActive
+            )
+        )
+    }
+
+    override suspend fun deleteAccount(accountId: Int) {
+        dataSource.deleteAccount(accountId)
     }
 }
 

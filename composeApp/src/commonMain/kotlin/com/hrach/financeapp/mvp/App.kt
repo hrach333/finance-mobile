@@ -165,21 +165,20 @@ private fun FinanceOverviewApp(
     onAuthExpired: (() -> Unit)? = null
 ) {
         val dashboardController = remember(repository) { FinanceDashboardController(repository) }
+        val coroutineScope = rememberCoroutineScope()
         var dashboardState by remember(dashboardController) {
             mutableStateOf(dashboardController.state)
+        }
+        fun applyDashboardEvent(event: FinanceDashboardEvent) {
+            dashboardState = dashboardController.state
+            if (event == FinanceDashboardEvent.AuthExpired) {
+                onAuthExpired?.invoke()
+            }
         }
 
         LaunchedEffect(repository) {
             dashboardState = dashboardController.markLoading()
-            when (dashboardController.refresh()) {
-                FinanceDashboardEvent.AuthExpired -> {
-                    dashboardState = dashboardController.state
-                    onAuthExpired?.invoke()
-                }
-                FinanceDashboardEvent.None -> {
-                    dashboardState = dashboardController.state
-                }
-            }
+            applyDashboardEvent(dashboardController.refresh())
         }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
@@ -196,7 +195,24 @@ private fun FinanceOverviewApp(
                     when (dashboardState.selectedTab) {
                         DashboardTab.Home -> HomeOverviewScreen(loadedOverview, onLogout)
                         DashboardTab.Transactions -> TransactionsOverviewScreen(loadedOverview)
-                        DashboardTab.Accounts -> AccountsOverviewScreen(loadedOverview)
+                        DashboardTab.Accounts -> AccountsOverviewScreen(
+                            overview = loadedOverview,
+                            onCreateAccount = { name, type, balance ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.createAccount(name, type, balance))
+                                }
+                            },
+                            onUpdateAccount = { account, name, type, balance ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.updateAccount(account, name, type, balance))
+                                }
+                            },
+                            onDeleteAccount = { account ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.deleteAccount(account))
+                                }
+                            }
+                        )
                         DashboardTab.Analytics -> AnalyticsOverviewScreen(loadedOverview)
                     }
                 }

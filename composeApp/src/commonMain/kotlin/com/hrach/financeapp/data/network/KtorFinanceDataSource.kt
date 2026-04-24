@@ -3,10 +3,12 @@ package com.hrach.financeapp.data.network
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.ApiListResponse
 import com.hrach.financeapp.data.dto.CategoryDto
+import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
 import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
+import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UserDto
 import com.hrach.financeapp.data.repository.FinanceDataSource
 import io.ktor.client.HttpClient
@@ -18,8 +20,12 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -50,6 +56,20 @@ class KtorFinanceDataSource(
         httpClient.get("accounts") {
             parameter("groupId", groupId)
         }.body<ApiListResponse<AccountDto>>().data
+
+    override suspend fun createAccount(request: CreateAccountRequest): AccountDto =
+        httpClient.post("accounts") {
+            setBody(request)
+        }.body()
+
+    override suspend fun updateAccount(id: Int, request: UpdateAccountRequest): AccountDto =
+        httpClient.put("accounts/$id") {
+            setBody(request)
+        }.body()
+
+    override suspend fun deleteAccount(id: Int) {
+        httpClient.delete("accounts/$id")
+    }
 
     override suspend fun getCategories(groupId: Int): List<CategoryDto> =
         httpClient.get("categories") {

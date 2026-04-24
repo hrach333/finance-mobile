@@ -27,6 +27,7 @@ fun toFinanceOverview(
 
     return FinanceOverview(
         userEmail = userEmail,
+        activeGroupId = activeGroupId,
         activeGroupName = activeGroupName,
         summary = FinanceSummary(
             balanceLabel = (summary?.balance ?: accounts.sumOf { it.currentBalance }).moneyLabel(),
@@ -36,7 +37,16 @@ fun toFinanceOverview(
         ),
         accounts = accounts.map { account ->
             AccountOverview(
+                id = account.id,
+                groupId = account.groupId,
+                userId = account.userId,
                 title = account.name,
+                type = account.type,
+                currency = account.currency,
+                initialBalance = account.initialBalance,
+                currentBalance = account.currentBalance,
+                shared = account.shared,
+                isActive = account.isActive,
                 balanceLabel = account.currentBalance.moneyLabel(account.currency),
                 subtitle = "${account.type.toAccountTypeLabel()} · ${if (account.shared) "Общий" else "Личный"}",
                 colorToken = account.type.toAccountColorToken()
