@@ -59,16 +59,11 @@ import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 import com.hrach.financeapp.ui.state.AuthResult
 import com.hrach.financeapp.ui.state.AuthSessionCoordinator
-import com.hrach.financeapp.ui.state.FinanceOverviewLoadResult
-import com.hrach.financeapp.ui.state.FinanceOverviewLoader
+import com.hrach.financeapp.ui.state.DashboardTab
+import com.hrach.financeapp.ui.state.FinanceDashboardController
+import com.hrach.financeapp.ui.state.FinanceDashboardEvent
+import com.hrach.financeapp.ui.state.FinanceDashboardState
 import kotlinx.coroutines.launch
-
-private enum class MvpTab(val title: String, val glyph: String) {
-    Home("Главная", "Г"),
-    Transactions("Операции", "О"),
-    Accounts("Счета", "С"),
-    Analytics("Аналитика", "А")
-}
 
 private val backgroundGradient = Brush.verticalGradient(
     colors = listOf(Color(0xFFCCCFDF), Color(0xFFEFD6EF), Color(0xFFABA7CE))
@@ -130,7 +125,7 @@ private fun AuthenticatedApp(
     if (!sessionLoaded) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
             Box(modifier = Modifier.fillMaxSize().background(backgroundGradient).padding(24.dp)) {
-                LoadingDashboard(error = null)
+                LoadingDashboard(state = FinanceDashboardState())
             }
         }
         return
@@ -173,41 +168,40 @@ private fun FinanceOverviewApp(
     onLogout: (() -> Unit)?,
     onAuthExpired: (() -> Unit)? = null
 ) {
-        var selectedTab by remember { mutableStateOf(MvpTab.Home) }
-        var overview by remember(repository) { mutableStateOf<FinanceOverview?>(null) }
-        var loadingError by remember(repository) { mutableStateOf<String?>(null) }
+        val dashboardController = remember(repository) { FinanceDashboardController(repository) }
+        var dashboardState by remember(dashboardController) {
+            mutableStateOf(dashboardController.state)
+        }
 
         LaunchedEffect(repository) {
-            loadingError = null
-            when (val result = FinanceOverviewLoader(repository).load()) {
-                FinanceOverviewLoadResult.AuthExpired -> {
-                    overview = null
+            dashboardState = dashboardController.markLoading()
+            when (dashboardController.refresh()) {
+                FinanceDashboardEvent.AuthExpired -> {
+                    dashboardState = dashboardController.state
                     onAuthExpired?.invoke()
                 }
-                is FinanceOverviewLoadResult.Failure -> {
-                    overview = null
-                    loadingError = result.message
-                }
-                is FinanceOverviewLoadResult.Success -> {
-                    overview = result.overview
+                FinanceDashboardEvent.None -> {
+                    dashboardState = dashboardController.state
                 }
             }
         }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
             ResponsiveShell(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
+                selectedTab = dashboardState.selectedTab,
+                onTabSelected = { tab ->
+                    dashboardState = dashboardController.selectTab(tab)
+                }
             ) {
-                val loadedOverview = overview
+                val loadedOverview = dashboardState.overview
                 if (loadedOverview == null) {
-                    LoadingDashboard(error = loadingError)
+                    LoadingDashboard(state = dashboardState)
                 } else {
-                    when (selectedTab) {
-                        MvpTab.Home -> HomeDashboard(loadedOverview, onLogout)
-                        MvpTab.Transactions -> TransactionsDashboard(loadedOverview)
-                        MvpTab.Accounts -> AccountsDashboard(loadedOverview)
-                        MvpTab.Analytics -> AnalyticsDashboard(loadedOverview)
+                    when (dashboardState.selectedTab) {
+                        DashboardTab.Home -> HomeDashboard(loadedOverview, onLogout)
+                        DashboardTab.Transactions -> TransactionsDashboard(loadedOverview)
+                        DashboardTab.Accounts -> AccountsDashboard(loadedOverview)
+                        DashboardTab.Analytics -> AnalyticsDashboard(loadedOverview)
                     }
                 }
             }
@@ -340,9 +334,12 @@ private fun AuthScreen(
 }
 
 @Composable
-private fun LoadingDashboard(error: String?) {
+private fun LoadingDashboard(state: FinanceDashboardState) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        HeaderBlock(title = "SmartBudget", subtitle = "Загрузка данных")
+        HeaderBlock(
+            title = "SmartBudget",
+            subtitle = if (state.isLoading) "Загрузка данных" else "Данные недоступны"
+        )
         Card(
             shape = RoundedCornerShape(24.dp),
             backgroundColor = Color(0xFFF9F6FC),
@@ -351,9 +348,9 @@ private fun LoadingDashboard(error: String?) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = error ?: "Подключаем финансовые данные...",
+                text = state.errorMessage ?: "Подключаем финансовые данные...",
                 modifier = Modifier.padding(18.dp),
-                color = if (error == null) Color(0xFF2F2B3A) else Color(0xFFE85B6A)
+                color = if (state.errorMessage == null) Color(0xFF2F2B3A) else Color(0xFFE85B6A)
             )
         }
     }
@@ -361,8 +358,8 @@ private fun LoadingDashboard(error: String?) {
 
 @Composable
 private fun ResponsiveShell(
-    selectedTab: MvpTab,
-    onTabSelected: (MvpTab) -> Unit,
+    selectedTab: DashboardTab,
+    onTabSelected: (DashboardTab) -> Unit,
     content: @Composable () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(backgroundGradient)) {
@@ -386,7 +383,7 @@ private fun ResponsiveShell(
                 backgroundColor = Color.Transparent,
                 bottomBar = {
                     BottomNavigation(backgroundColor = Color(0xFFF9F6FC), elevation = 10.dp) {
-                        MvpTab.entries.forEach { tab ->
+                        DashboardTab.entries.forEach { tab ->
                             BottomNavigationItem(
                                 selected = selectedTab == tab,
                                 onClick = { onTabSelected(tab) },
@@ -413,7 +410,7 @@ private fun ResponsiveShell(
 }
 
 @Composable
-private fun DesktopRail(selectedTab: MvpTab, onTabSelected: (MvpTab) -> Unit) {
+private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab) -> Unit) {
     Column(
         modifier = Modifier
             .width(206.dp)
@@ -434,14 +431,14 @@ private fun DesktopRail(selectedTab: MvpTab, onTabSelected: (MvpTab) -> Unit) {
             style = MaterialTheme.typography.body2
         )
         Spacer(modifier = Modifier.height(12.dp))
-        MvpTab.entries.forEach { tab ->
+        DashboardTab.entries.forEach { tab ->
             RailItem(tab = tab, selected = selectedTab == tab, onClick = { onTabSelected(tab) })
         }
     }
 }
 
 @Composable
-private fun RailItem(tab: MvpTab, selected: Boolean, onClick: () -> Unit) {
+private fun RailItem(tab: DashboardTab, selected: Boolean, onClick: () -> Unit) {
     val background = if (selected) Color(0xFFF1E7FB) else Color.Transparent
     val textColor = if (selected) Color(0xFF5E4B8B) else Color(0xFF4B4760)
 
@@ -461,7 +458,7 @@ private fun RailItem(tab: MvpTab, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NavigationGlyph(tab: MvpTab, selected: Boolean) {
+private fun NavigationGlyph(tab: DashboardTab, selected: Boolean) {
     val background = if (selected) Color(0xFF5E4B8B) else Color(0xFFE8E1F0)
     val content = if (selected) Color.White else Color(0xFF6B6579)
 
