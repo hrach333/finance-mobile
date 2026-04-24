@@ -4,12 +4,14 @@ import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.ApiListResponse
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
 import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
 import com.hrach.financeapp.data.repository.FinanceDataSource
@@ -79,6 +81,22 @@ class KtorFinanceDataSource(
         httpClient.get("categories") {
             parameter("groupId", groupId)
         }.body<ApiListResponse<CategoryDto>>().data
+
+    override suspend fun createCategory(request: CreateCategoryRequest) {
+        httpClient.post("categories") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun updateCategory(id: Int, request: UpdateCategoryRequest) {
+        httpClient.put("categories/$id") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun deleteCategory(id: Int) {
+        httpClient.delete("categories/$id")
+    }
 
     override suspend fun getTransactions(groupId: Int): List<TransactionDto> =
         httpClient.get("transactions") {

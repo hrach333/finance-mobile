@@ -1,8 +1,10 @@
 package com.hrach.financeapp.data.repository
 
 import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
@@ -11,7 +13,7 @@ class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
     private val periodProvider: FinancePeriodProvider,
     private val preferredGroupId: Int? = null
-) : FinanceOverviewRepository, AccountMutationsRepository, TransactionMutationsRepository {
+) : FinanceOverviewRepository, AccountMutationsRepository, CategoryMutationsRepository, TransactionMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
         val user = dataSource.me()
         val groups = dataSource.getGroups()
@@ -93,6 +95,42 @@ class RemoteFinanceOverviewRepository(
 
     override suspend fun deleteAccount(accountId: Int) {
         dataSource.deleteAccount(accountId)
+    }
+
+    override suspend fun createCategory(
+        groupId: Int,
+        name: String,
+        type: String,
+        iconKey: String?
+    ) {
+        dataSource.createCategory(
+            CreateCategoryRequest(
+                groupId = groupId,
+                type = type,
+                name = name.trim(),
+                iconKey = iconKey
+            )
+        )
+    }
+
+    override suspend fun updateCategory(
+        categoryId: Int,
+        name: String,
+        type: String,
+        iconKey: String?
+    ) {
+        dataSource.updateCategory(
+            categoryId,
+            UpdateCategoryRequest(
+                name = name.trim(),
+                type = type,
+                iconKey = iconKey
+            )
+        )
+    }
+
+    override suspend fun deleteCategory(categoryId: Int) {
+        dataSource.deleteCategory(categoryId)
     }
 
     override suspend fun createTransaction(

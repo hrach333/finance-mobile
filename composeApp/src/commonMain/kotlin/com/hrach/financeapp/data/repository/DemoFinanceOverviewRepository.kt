@@ -8,10 +8,11 @@ import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
 
-class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository, TransactionMutationsRepository {
+class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository, CategoryMutationsRepository, TransactionMutationsRepository {
     private var nextAccountId = 4
+    private var nextCategoryId = 6
     private var nextTransactionId = 6
-    private val categories = listOf(
+    private val categories = mutableListOf(
         CategoryOverview(id = 1, groupId = 1, type = "EXPENSE", name = "Продукты", iconKey = "shopping"),
         CategoryOverview(id = 2, groupId = 1, type = "EXPENSE", name = "Транспорт", iconKey = "transport"),
         CategoryOverview(id = 3, groupId = 1, type = "EXPENSE", name = "Здоровье", iconKey = "health"),
@@ -141,7 +142,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
                 subtitle = "4 счета, 2 участника группы"
             ),
             accounts = accounts.toList(),
-            categories = categories,
+            categories = categories.toList(),
             transactions = transactions.toList(),
             insights = listOf(
                 "Баланс месяца положительный: доходы выше расходов на 125 150 ₽.",
@@ -205,6 +206,41 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
 
     override suspend fun deleteAccount(accountId: Int) {
         accounts.removeAll { it.id == accountId }
+    }
+
+    override suspend fun createCategory(
+        groupId: Int,
+        name: String,
+        type: String,
+        iconKey: String?
+    ) {
+        categories += CategoryOverview(
+            id = nextCategoryId++,
+            groupId = groupId,
+            type = type,
+            name = name,
+            iconKey = iconKey
+        )
+    }
+
+    override suspend fun updateCategory(
+        categoryId: Int,
+        name: String,
+        type: String,
+        iconKey: String?
+    ) {
+        val index = categories.indexOfFirst { it.id == categoryId }
+        if (index < 0) return
+
+        categories[index] = categories[index].copy(
+            name = name,
+            type = type,
+            iconKey = iconKey
+        )
+    }
+
+    override suspend fun deleteCategory(categoryId: Int) {
+        categories.removeAll { it.id == categoryId }
     }
 
     override suspend fun createTransaction(

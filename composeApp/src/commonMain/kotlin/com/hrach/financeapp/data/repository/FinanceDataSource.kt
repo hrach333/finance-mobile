@@ -3,12 +3,14 @@ package com.hrach.financeapp.data.repository
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
 import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
 
@@ -20,6 +22,9 @@ interface FinanceDataSource {
     suspend fun updateAccount(id: Int, request: UpdateAccountRequest)
     suspend fun deleteAccount(id: Int)
     suspend fun getCategories(groupId: Int): List<CategoryDto>
+    suspend fun createCategory(request: CreateCategoryRequest)
+    suspend fun updateCategory(id: Int, request: UpdateCategoryRequest)
+    suspend fun deleteCategory(id: Int)
     suspend fun getTransactions(groupId: Int): List<TransactionDto>
     suspend fun createTransaction(request: CreateTransactionRequest)
     suspend fun updateTransaction(id: Int, request: UpdateTransactionRequest)

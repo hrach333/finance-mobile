@@ -2,6 +2,7 @@ package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,8 +40,17 @@ import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
+import com.hrach.financeapp.ui.utils.CalendarMonth
+import com.hrach.financeapp.ui.utils.calendarMonthFromDate
+import com.hrach.financeapp.ui.utils.currentUiDate
+import com.hrach.financeapp.ui.utils.daysInMonth
+import com.hrach.financeapp.ui.utils.firstDayOffsetFromMonday
 import com.hrach.financeapp.ui.utils.formatIsoDateForUi
+import com.hrach.financeapp.ui.utils.isoDateForDay
+import com.hrach.financeapp.ui.utils.monthTitle
+import com.hrach.financeapp.ui.utils.nextMonth
 import com.hrach.financeapp.ui.utils.parseUiOrIsoDateToIso
+import com.hrach.financeapp.ui.utils.previousMonth
 
 @Composable
 fun TransactionsOverviewScreen(
@@ -198,7 +208,7 @@ private fun TransactionOverviewEditorDialog(
     initialAmount: String = "",
     initialAccountId: Int? = accounts.firstOrNull()?.id,
     initialCategoryId: Int? = categories.firstOrNull { it.type == initialType }?.id,
-    initialDate: String = "24.04.2026",
+    initialDate: String = currentUiDate(),
     initialComment: String = "",
     onDismiss: () -> Unit,
     onSave: (String, Double, Int, Int, String, String) -> Unit
@@ -210,6 +220,7 @@ private fun TransactionOverviewEditorDialog(
     var date by remember { mutableStateOf(initialDate.takeIf { it.isNotBlank() } ?: "24.04.2026") }
     var comment by remember { mutableStateOf(initialComment) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showCalendar by remember { mutableStateOf(false) }
     val currentCategories = categories.filter { it.type == type }
 
     AlertDialog(
@@ -264,16 +275,26 @@ private fun TransactionOverviewEditorDialog(
                     singleLine = true
                 )
 
-                TextField(
-                    value = date,
-                    onValueChange = {
-                        date = it
-                        error = null
-                    },
-                    label = { Text("Дата, например 24.04.2026") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextField(
+                        value = date,
+                        onValueChange = {
+                            date = it
+                            error = null
+                        },
+                        label = { Text("Дата") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = { showCalendar = true },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+                        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+                    ) {
+                        Text("Выбрать")
+                    }
+                }
 
                 TextField(
                     value = comment,
@@ -333,6 +354,133 @@ private fun TransactionOverviewEditorDialog(
             }
         }
     )
+
+    if (showCalendar) {
+        TransactionDatePickerDialog(
+            selectedDate = date,
+            onDismiss = { showCalendar = false },
+            onDateSelected = { selectedIsoDate ->
+                date = formatIsoDateForUi(selectedIsoDate)
+                error = null
+                showCalendar = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun TransactionDatePickerDialog(
+    selectedDate: String,
+    onDismiss: () -> Unit,
+    onDateSelected: (String) -> Unit
+) {
+    val selectedIsoDate = parseUiOrIsoDateToIso(selectedDate) ?: parseUiOrIsoDateToIso(currentUiDate())
+    var visibleMonth by remember(selectedDate) {
+        mutableStateOf(calendarMonthFromDate(selectedDate))
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Закрыть")
+            }
+        },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = { visibleMonth = previousMonth(visibleMonth) }) {
+                    Text("<")
+                }
+                Text(monthTitle(visibleMonth), fontWeight = FontWeight.Bold)
+                TextButton(onClick = { visibleMonth = nextMonth(visibleMonth) }) {
+                    Text(">")
+                }
+            }
+        },
+        text = {
+            CalendarMonthGrid(
+                month = visibleMonth,
+                selectedIsoDate = selectedIsoDate,
+                onDateSelected = onDateSelected
+            )
+        }
+    )
+}
+
+@Composable
+private fun CalendarMonthGrid(
+    month: CalendarMonth,
+    selectedIsoDate: String?,
+    onDateSelected: (String) -> Unit
+) {
+    val weekdays = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+    val offset = firstDayOffsetFromMonday(month)
+    val days = daysInMonth(month)
+    val cells = List(offset) { null } + (1..days).map { it }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            weekdays.forEach { weekday ->
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text(weekday, color = Color(0xFF6B6579), style = MaterialTheme.typography.caption)
+                }
+            }
+        }
+
+        cells.chunked(7).forEach { week ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                week.forEach { day ->
+                    CalendarDayCell(
+                        month = month,
+                        day = day,
+                        selectedIsoDate = selectedIsoDate,
+                        onDateSelected = onDateSelected,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                repeat(7 - week.size) {
+                    Box(modifier = Modifier.weight(1f).size(38.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarDayCell(
+    month: CalendarMonth,
+    day: Int?,
+    selectedIsoDate: String?,
+    onDateSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (day == null) {
+        Box(modifier = modifier.size(38.dp))
+        return
+    }
+
+    val isoDate = isoDateForDay(month, day)
+    val selected = isoDate == selectedIsoDate
+
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFF5E4B8B) else Color(0xFFF1E7FB))
+            .clickable { onDateSelected(isoDate) },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = day.toString(),
+            color = if (selected) Color.White else Color(0xFF2F2B3A),
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
+    }
 }
 
 @Composable

@@ -51,6 +51,7 @@ import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 import com.hrach.financeapp.ui.screens.AccountsOverviewScreen
 import com.hrach.financeapp.ui.screens.AnalyticsOverviewScreen
+import com.hrach.financeapp.ui.screens.CategoriesOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import com.hrach.financeapp.ui.state.AuthResult
@@ -231,6 +232,24 @@ private fun FinanceOverviewApp(
                             onDeleteAccount = { account ->
                                 coroutineScope.launch {
                                     applyDashboardEvent(dashboardController.deleteAccount(account))
+                                }
+                            }
+                        )
+                        DashboardTab.Categories -> CategoriesOverviewScreen(
+                            overview = loadedOverview,
+                            onCreateCategory = { name, type, iconKey ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.createCategory(name, type, iconKey))
+                                }
+                            },
+                            onUpdateCategory = { category, name, type, iconKey ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.updateCategory(category, name, type, iconKey))
+                                }
+                            },
+                            onDeleteCategory = { category ->
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.deleteCategory(category))
                                 }
                             }
                         )

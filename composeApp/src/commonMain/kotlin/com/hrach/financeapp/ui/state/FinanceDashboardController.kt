@@ -1,8 +1,10 @@
 package com.hrach.financeapp.ui.state
 
 import com.hrach.financeapp.data.model.AccountOverview
+import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.TransactionOverview
 import com.hrach.financeapp.data.repository.AccountMutationsRepository
+import com.hrach.financeapp.data.repository.CategoryMutationsRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 import com.hrach.financeapp.data.repository.TransactionMutationsRepository
 
@@ -11,6 +13,7 @@ class FinanceDashboardController(
 ) {
     private val loader = FinanceOverviewLoader(repository)
     private val accountMutations = repository as? AccountMutationsRepository
+    private val categoryMutations = repository as? CategoryMutationsRepository
     private val transactionMutations = repository as? TransactionMutationsRepository
 
     var state = FinanceDashboardState()
@@ -85,6 +88,41 @@ class FinanceDashboardController(
 
         return runMutationAction("Не удалось изменить счет") {
             mutations.deleteAccount(accountId)
+        }
+    }
+
+    suspend fun createCategory(name: String, type: String, iconKey: String?): FinanceDashboardEvent {
+        val groupId = state.overview?.activeGroupId ?: return failAction("Нет активной группы")
+        val mutations = categoryMutations ?: return failAction("Редактирование категорий пока недоступно")
+
+        return runMutationAction("Не удалось изменить категорию") {
+            mutations.createCategory(
+                groupId = groupId,
+                name = name,
+                type = type,
+                iconKey = iconKey
+            )
+        }
+    }
+
+    suspend fun updateCategory(category: CategoryOverview, name: String, type: String, iconKey: String?): FinanceDashboardEvent {
+        val mutations = categoryMutations ?: return failAction("Редактирование категорий пока недоступно")
+
+        return runMutationAction("Не удалось изменить категорию") {
+            mutations.updateCategory(
+                categoryId = category.id,
+                name = name,
+                type = type,
+                iconKey = iconKey
+            )
+        }
+    }
+
+    suspend fun deleteCategory(category: CategoryOverview): FinanceDashboardEvent {
+        val mutations = categoryMutations ?: return failAction("Редактирование категорий пока недоступно")
+
+        return runMutationAction("Не удалось удалить категорию") {
+            mutations.deleteCategory(category.id)
         }
     }
 
