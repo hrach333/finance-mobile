@@ -198,58 +198,76 @@ private fun FinanceOverviewApp(
                         DashboardTab.Transactions -> TransactionsOverviewScreen(
                             overview = loadedOverview,
                             onCreateTransaction = { type, amount, accountId, categoryId, date, comment ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewCreateTransaction(type, amount, accountId, categoryId, date, comment)
                                 coroutineScope.launch {
                                     applyDashboardEvent(
-                                        dashboardController.createTransaction(type, amount, accountId, categoryId, date, comment)
+                                        dashboardController.createTransaction(type, amount, accountId, categoryId, date, comment, rollbackState)
                                     )
                                 }
                             },
                             onUpdateTransaction = { transaction, type, amount, accountId, categoryId, date, comment ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewUpdateTransaction(transaction, type, amount, accountId, categoryId, date, comment)
                                 coroutineScope.launch {
                                     applyDashboardEvent(
-                                        dashboardController.updateTransaction(transaction, type, amount, accountId, categoryId, date, comment)
+                                        dashboardController.updateTransaction(transaction, type, amount, accountId, categoryId, date, comment, rollbackState)
                                     )
                                 }
                             },
                             onDeleteTransaction = { transaction ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewDeleteTransaction(transaction)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.deleteTransaction(transaction))
+                                    applyDashboardEvent(dashboardController.deleteTransaction(transaction, rollbackState))
                                 }
                             }
                         )
                         DashboardTab.Accounts -> AccountsOverviewScreen(
                             overview = loadedOverview,
                             onCreateAccount = { name, type, balance ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewCreateAccount(name, type, balance)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.createAccount(name, type, balance))
+                                    applyDashboardEvent(dashboardController.createAccount(name, type, balance, rollbackState))
                                 }
                             },
                             onUpdateAccount = { account, name, type, balance ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewUpdateAccount(account, name, type, balance)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.updateAccount(account, name, type, balance))
+                                    applyDashboardEvent(dashboardController.updateAccount(account, name, type, balance, rollbackState))
                                 }
                             },
                             onDeleteAccount = { account ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewDeleteAccount(account)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.deleteAccount(account))
+                                    applyDashboardEvent(dashboardController.deleteAccount(account, rollbackState))
                                 }
                             }
                         )
                         DashboardTab.Categories -> CategoriesOverviewScreen(
                             overview = loadedOverview,
                             onCreateCategory = { name, type, iconKey ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewCreateCategory(name, type, iconKey)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.createCategory(name, type, iconKey))
+                                    applyDashboardEvent(dashboardController.createCategory(name, type, iconKey, rollbackState))
                                 }
                             },
                             onUpdateCategory = { category, name, type, iconKey ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewUpdateCategory(category, name, type, iconKey)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.updateCategory(category, name, type, iconKey))
+                                    applyDashboardEvent(dashboardController.updateCategory(category, name, type, iconKey, rollbackState))
                                 }
                             },
                             onDeleteCategory = { category ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewDeleteCategory(category)
                                 coroutineScope.launch {
-                                    applyDashboardEvent(dashboardController.deleteCategory(category))
+                                    applyDashboardEvent(dashboardController.deleteCategory(category, rollbackState))
                                 }
                             }
                         )

@@ -8,6 +8,8 @@ import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
@@ -15,35 +17,45 @@ class RemoteFinanceOverviewRepository(
     private val preferredGroupId: Int? = null
 ) : FinanceOverviewRepository, AccountMutationsRepository, CategoryMutationsRepository, TransactionMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
-        val user = dataSource.me()
-        val groups = dataSource.getGroups()
-        val activeGroup = groups.firstOrNull { it.id == preferredGroupId } ?: groups.firstOrNull()
-        val groupId = activeGroup?.id
+        return coroutineScope {
+            val userDeferred = async { dataSource.me() }
+            val groupsDeferred = async { dataSource.getGroups() }
+            val user = userDeferred.await()
+            val groups = groupsDeferred.await()
+            val activeGroup = groups.firstOrNull { it.id == preferredGroupId } ?: groups.firstOrNull()
+            val groupId = activeGroup?.id
 
-        if (groupId == null) {
-            return toFinanceOverview(
-                userEmail = user.email,
-                groups = groups,
-                activeGroupId = null,
-                accounts = emptyList(),
-                categories = emptyList(),
-                transactions = emptyList(),
-                summary = null,
-                members = emptyList()
-            )
+            if (groupId == null) {
+                toFinanceOverview(
+                    userEmail = user.email,
+                    groups = groups,
+                    activeGroupId = null,
+                    accounts = emptyList(),
+                    categories = emptyList(),
+                    transactions = emptyList(),
+                    summary = null,
+                    members = emptyList()
+                )
+            } else {
+                val period = periodProvider.currentPeriod()
+                val accountsDeferred = async { dataSource.getAccounts(groupId) }
+                val categoriesDeferred = async { dataSource.getCategories(groupId) }
+                val transactionsDeferred = async { dataSource.getTransactions(groupId) }
+                val summaryDeferred = async { dataSource.getSummary(groupId, period.startDate, period.endDate) }
+                val membersDeferred = async { dataSource.getGroupMembers(groupId) }
+
+                toFinanceOverview(
+                    userEmail = user.email,
+                    groups = groups,
+                    activeGroupId = groupId,
+                    accounts = accountsDeferred.await(),
+                    categories = categoriesDeferred.await(),
+                    transactions = transactionsDeferred.await(),
+                    summary = summaryDeferred.await(),
+                    members = membersDeferred.await()
+                )
+            }
         }
-
-        val period = periodProvider.currentPeriod()
-        return toFinanceOverview(
-            userEmail = user.email,
-            groups = groups,
-            activeGroupId = groupId,
-            accounts = dataSource.getAccounts(groupId),
-            categories = dataSource.getCategories(groupId),
-            transactions = dataSource.getTransactions(groupId),
-            summary = dataSource.getSummary(groupId, period.startDate, period.endDate),
-            members = dataSource.getGroupMembers(groupId)
-        )
     }
 
     override suspend fun createAccount(

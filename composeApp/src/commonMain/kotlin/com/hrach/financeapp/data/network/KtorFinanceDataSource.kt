@@ -158,7 +158,7 @@ fun createFinanceHttpClient(
         }
 
         install(Logging) {
-            level = LogLevel.INFO
+            level = LogLevel.NONE
         }
 
         HttpResponseValidator {
