@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 val composeMultiplatformVersion = "1.10.3"
 val ktorVersion = "3.3.1"
 val kotlinxDatetimeVersion = "0.7.1"
+val slf4jVersion = "2.0.17"
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -81,6 +82,7 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")
+                implementation("org.slf4j:slf4j-simple:$slf4jVersion")
             }
         }
     }

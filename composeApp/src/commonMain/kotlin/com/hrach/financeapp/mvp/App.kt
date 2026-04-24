@@ -57,6 +57,10 @@ import com.hrach.financeapp.data.model.TransactionOverview
 import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import com.hrach.financeapp.ui.state.AuthResult
+import com.hrach.financeapp.ui.state.AuthSessionCoordinator
+import com.hrach.financeapp.ui.state.FinanceOverviewLoadResult
+import com.hrach.financeapp.ui.state.FinanceOverviewLoader
 import kotlinx.coroutines.launch
 
 private enum class MvpTab(val title: String, val glyph: String) {
@@ -108,11 +112,18 @@ private fun AuthenticatedApp(
     repositoryFactory: (() -> String?) -> FinanceOverviewRepository
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val authSession = remember(authRepository, sessionStore, repositoryFactory) {
+        AuthSessionCoordinator(
+            authRepository = authRepository,
+            sessionStore = sessionStore,
+            repositoryFactory = repositoryFactory
+        )
+    }
     var sessionLoaded by remember(sessionStore) { mutableStateOf(false) }
     var token by remember(sessionStore) { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(sessionStore) {
-        token = sessionStore.getToken()
+    LaunchedEffect(authSession) {
+        token = authSession.restoreToken()
         sessionLoaded = true
     }
 
@@ -128,32 +139,28 @@ private fun AuthenticatedApp(
     val activeToken = token
     if (activeToken.isNullOrBlank()) {
         AuthScreen(
-            authRepository = authRepository,
+            authSession = authSession,
             onAuthenticated = { authToken ->
-                coroutineScope.launch {
-                    sessionStore.saveToken(authToken)
-                    token = authToken
-                }
+                token = authToken
             }
         )
         return
     }
 
-    val overviewRepository = remember(activeToken, repositoryFactory) {
-        repositoryFactory { token }
+    val overviewRepository = remember(activeToken, authSession) {
+        authSession.createOverviewRepository { token }
     }
     FinanceOverviewApp(
         repository = overviewRepository,
         onLogout = {
             coroutineScope.launch {
-                authRepository.logout(token)
-                sessionStore.clearToken()
+                authSession.logout(token)
                 token = null
             }
         },
         onAuthExpired = {
             coroutineScope.launch {
-                sessionStore.clearToken()
+                authSession.clearToken()
                 token = null
             }
         }
@@ -172,16 +179,19 @@ private fun FinanceOverviewApp(
 
         LaunchedEffect(repository) {
             loadingError = null
-            overview = runCatching { repository.getOverview() }
-                .onFailure {
-                    val message = it.message ?: "Не удалось загрузить данные"
-                    if (message.isAuthFailureMessage()) {
-                        onAuthExpired?.invoke()
-                    } else {
-                        loadingError = message
-                    }
+            when (val result = FinanceOverviewLoader(repository).load()) {
+                FinanceOverviewLoadResult.AuthExpired -> {
+                    overview = null
+                    onAuthExpired?.invoke()
                 }
-                .getOrNull()
+                is FinanceOverviewLoadResult.Failure -> {
+                    overview = null
+                    loadingError = result.message
+                }
+                is FinanceOverviewLoadResult.Success -> {
+                    overview = result.overview
+                }
+            }
         }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
@@ -204,15 +214,9 @@ private fun FinanceOverviewApp(
         }
 }
 
-private fun String.isAuthFailureMessage(): Boolean {
-    return contains("401", ignoreCase = true) ||
-        contains("unauthorized", ignoreCase = true) ||
-        contains("unauthenticated", ignoreCase = true)
-}
-
 @Composable
 private fun AuthScreen(
-    authRepository: AuthRepository,
+    authSession: AuthSessionCoordinator,
     onAuthenticated: (String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -292,16 +296,19 @@ private fun AuthScreen(
                             coroutineScope.launch {
                                 isLoading = true
                                 error = null
-                                runCatching {
+                                when (val result =
                                     if (isRegisterMode) {
-                                        authRepository.register(name.trim(), email.trim(), password)
+                                        authSession.register(name = name, email = email, password = password)
                                     } else {
-                                        authRepository.login(email.trim(), password)
+                                        authSession.login(email = email, password = password)
                                     }
-                                }.onSuccess { response ->
-                                    onAuthenticated(response.token)
-                                }.onFailure { throwable ->
-                                    error = throwable.message ?: "Не удалось выполнить вход"
+                                ) {
+                                    is AuthResult.Failure -> {
+                                        error = result.message
+                                    }
+                                    is AuthResult.Success -> {
+                                        onAuthenticated(result.token)
+                                    }
                                 }
                                 isLoading = false
                             }
