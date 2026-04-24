@@ -11,6 +11,7 @@ import com.hrach.financeapp.data.dto.UserDto
 import com.hrach.financeapp.data.repository.FinanceDataSource
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.statement.bodyAsText
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -24,6 +25,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
 
 class KtorFinanceDataSource(
     private val tokenProvider: () -> String?,
@@ -33,7 +36,8 @@ class KtorFinanceDataSource(
         baseUrl = baseUrl
     )
 ) : FinanceDataSource {
-    override suspend fun me(): UserDto = httpClient.get("me").body()
+    override suspend fun me(): UserDto =
+        decodeUserDto(httpClient.get("me").bodyAsText())
 
     override suspend fun getGroups(): List<GroupDto> =
         httpClient.get("groups").body<ApiListResponse<GroupDto>>().data
@@ -88,13 +92,7 @@ fun createFinanceHttpClient(
         }
 
         install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    explicitNulls = false
-                }
-            )
+            json(financeJson)
         }
 
         install(Logging) {
@@ -107,6 +105,18 @@ fun createFinanceHttpClient(
             }
         }
     }
+}
+
+private val financeJson = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    explicitNulls = false
+}
+
+private fun decodeUserDto(payload: String): UserDto {
+    val root = financeJson.parseToJsonElement(payload)
+    val user = root.jsonObject["data"] ?: root.jsonObject["user"] ?: root
+    return financeJson.decodeFromJsonElement(user)
 }
 
 class FinanceNetworkException(message: String, cause: Throwable? = null) : Exception(message, cause)
