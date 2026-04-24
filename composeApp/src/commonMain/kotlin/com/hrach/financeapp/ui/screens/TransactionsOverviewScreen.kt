@@ -41,7 +41,7 @@ fun TransactionsOverviewScreen(overview: FinanceOverview) {
 }
 
 @Composable
-private fun TransactionOverviewCard(transaction: TransactionOverview) {
+fun TransactionOverviewCard(transaction: TransactionOverview) {
     val tint = transaction.colorToken.toScreenColor()
 
     Card(
