@@ -1,6 +1,7 @@
 package com.hrach.financeapp.data.repository
 
 import com.hrach.financeapp.data.dto.AccountDto
+import com.hrach.financeapp.data.dto.AddGroupMemberRequest
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
@@ -11,6 +12,7 @@ import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
+import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
 
@@ -31,4 +33,7 @@ interface FinanceDataSource {
     suspend fun deleteTransaction(id: Int)
     suspend fun getSummary(groupId: Int, startDate: String, endDate: String): SummaryDto
     suspend fun getGroupMembers(groupId: Int): List<GroupMemberDto>
+    suspend fun addGroupMember(groupId: Int, request: AddGroupMemberRequest)
+    suspend fun updateGroupMemberRole(groupId: Int, memberId: Int, request: UpdateGroupMemberRoleRequest)
+    suspend fun deleteGroupMember(groupId: Int, memberId: Int)
 }

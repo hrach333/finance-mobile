@@ -52,6 +52,7 @@ import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 import com.hrach.financeapp.ui.screens.AccountsOverviewScreen
 import com.hrach.financeapp.ui.screens.AnalyticsOverviewScreen
 import com.hrach.financeapp.ui.screens.CategoriesOverviewScreen
+import com.hrach.financeapp.ui.screens.GroupMembersOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import com.hrach.financeapp.ui.state.AuthResult
@@ -194,7 +195,16 @@ private fun FinanceOverviewApp(
                     LoadingDashboard(state = dashboardState)
                 } else {
                     when (dashboardState.selectedTab) {
-                        DashboardTab.Home -> HomeOverviewScreen(loadedOverview, onLogout)
+                        DashboardTab.Home -> HomeOverviewScreen(
+                            overview = loadedOverview,
+                            onLogout = onLogout,
+                            onOpenMembers = {
+                                dashboardState = dashboardController.selectTab(DashboardTab.Members)
+                            },
+                            onOpenCategories = {
+                                dashboardState = dashboardController.selectTab(DashboardTab.Categories)
+                            }
+                        )
                         DashboardTab.Transactions -> TransactionsOverviewScreen(
                             overview = loadedOverview,
                             onCreateTransaction = { type, amount, accountId, categoryId, date, comment ->
@@ -268,6 +278,30 @@ private fun FinanceOverviewApp(
                                 dashboardState = dashboardController.previewDeleteCategory(category)
                                 coroutineScope.launch {
                                     applyDashboardEvent(dashboardController.deleteCategory(category, rollbackState))
+                                }
+                            }
+                        )
+                        DashboardTab.Members -> GroupMembersOverviewScreen(
+                            overview = loadedOverview,
+                            onAddMember = { email, role ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewAddGroupMember(email, role)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.addGroupMember(email, role, rollbackState))
+                                }
+                            },
+                            onUpdateMemberRole = { member, role ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewUpdateGroupMemberRole(member, role)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.updateGroupMemberRole(member, role, rollbackState))
+                                }
+                            },
+                            onDeleteMember = { member ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewDeleteGroupMember(member)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.deleteGroupMember(member, rollbackState))
                                 }
                             }
                         )

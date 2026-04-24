@@ -1,6 +1,7 @@
 package com.hrach.financeapp.data.network
 
 import com.hrach.financeapp.data.dto.AccountDto
+import com.hrach.financeapp.data.dto.AddGroupMemberRequest
 import com.hrach.financeapp.data.dto.ApiListResponse
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
@@ -12,6 +13,7 @@ import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
+import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
 import com.hrach.financeapp.data.repository.FinanceDataSource
@@ -128,6 +130,22 @@ class KtorFinanceDataSource(
 
     override suspend fun getGroupMembers(groupId: Int): List<GroupMemberDto> =
         httpClient.get("groups/$groupId/members").body<ApiListResponse<GroupMemberDto>>().data
+
+    override suspend fun addGroupMember(groupId: Int, request: AddGroupMemberRequest) {
+        httpClient.post("groups/$groupId/members") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun updateGroupMemberRole(groupId: Int, memberId: Int, request: UpdateGroupMemberRoleRequest) {
+        httpClient.put("groups/$groupId/members/$memberId") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun deleteGroupMember(groupId: Int, memberId: Int) {
+        httpClient.delete("groups/$groupId/members/$memberId")
+    }
 
     companion object {
         const val DEFAULT_BASE_URL = "https://finance.hrach.ru/api/"

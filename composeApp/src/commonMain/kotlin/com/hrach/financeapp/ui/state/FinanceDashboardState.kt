@@ -7,6 +7,7 @@ enum class DashboardTab(val title: String, val glyph: String) {
     Transactions("Операции", "О"),
     Accounts("Счета", "С"),
     Categories("Категории", "К"),
+    Members("Участники", "У"),
     Analytics("Аналитика", "А")
 }
 

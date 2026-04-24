@@ -2,6 +2,7 @@ package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +37,9 @@ import com.hrach.financeapp.data.model.FinanceOverview
 @Composable
 fun HomeOverviewScreen(
     overview: FinanceOverview,
-    onLogout: (() -> Unit)?
+    onLogout: (() -> Unit)?,
+    onOpenMembers: () -> Unit = {},
+    onOpenCategories: () -> Unit = {}
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -68,11 +71,23 @@ fun HomeOverviewScreen(
         }
 
         item {
-            ActionCard(title = "Участники группы", glyph = "У", tint = Color(0xFF4C5E8B), boxColor = Color(0xFFE5ECFB))
+            ActionCard(
+                title = "Участники группы",
+                glyph = "У",
+                tint = Color(0xFF4C5E8B),
+                boxColor = Color(0xFFE5ECFB),
+                onClick = onOpenMembers
+            )
         }
 
         item {
-            ActionCard(title = "Категории", glyph = "К", tint = Color(0xFF5E4B8B), boxColor = Color(0xFFF1E7FB))
+            ActionCard(
+                title = "Категории",
+                glyph = "К",
+                tint = Color(0xFF5E4B8B),
+                boxColor = Color(0xFFF1E7FB),
+                onClick = onOpenCategories
+            )
         }
 
         item {
@@ -253,13 +268,13 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ActionCard(title: String, glyph: String, tint: Color, boxColor: Color) {
+private fun ActionCard(title: String, glyph: String, tint: Color, boxColor: Color, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(28.dp),
         backgroundColor = Color(0xFFF9F6FC),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
         elevation = 6.dp,
-        modifier = Modifier.fillMaxWidth().height(92.dp)
+        modifier = Modifier.fillMaxWidth().height(92.dp).clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),

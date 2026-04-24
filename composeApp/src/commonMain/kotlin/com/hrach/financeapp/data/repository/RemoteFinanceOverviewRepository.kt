@@ -3,8 +3,10 @@ package com.hrach.financeapp.data.repository
 import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
+import com.hrach.financeapp.data.dto.AddGroupMemberRequest
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
+import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
@@ -15,7 +17,11 @@ class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
     private val periodProvider: FinancePeriodProvider,
     private val preferredGroupId: Int? = null
-) : FinanceOverviewRepository, AccountMutationsRepository, CategoryMutationsRepository, TransactionMutationsRepository {
+) : FinanceOverviewRepository,
+    AccountMutationsRepository,
+    CategoryMutationsRepository,
+    GroupMemberMutationsRepository,
+    TransactionMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
         return coroutineScope {
             val userDeferred = async { dataSource.me() }
@@ -143,6 +149,25 @@ class RemoteFinanceOverviewRepository(
 
     override suspend fun deleteCategory(categoryId: Int) {
         dataSource.deleteCategory(categoryId)
+    }
+
+    override suspend fun addGroupMember(groupId: Int, email: String, role: String) {
+        dataSource.addGroupMember(
+            groupId = groupId,
+            request = AddGroupMemberRequest(email = email.trim(), role = role)
+        )
+    }
+
+    override suspend fun updateGroupMemberRole(groupId: Int, memberId: Int, role: String) {
+        dataSource.updateGroupMemberRole(
+            groupId = groupId,
+            memberId = memberId,
+            request = UpdateGroupMemberRoleRequest(role = role)
+        )
+    }
+
+    override suspend fun deleteGroupMember(groupId: Int, memberId: Int) {
+        dataSource.deleteGroupMember(groupId = groupId, memberId = memberId)
     }
 
     override suspend fun createTransaction(

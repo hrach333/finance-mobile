@@ -61,6 +61,15 @@ fun toFinanceOverview(
                 iconKey = category.iconKey
             )
         },
+        members = members.map { member ->
+            GroupMemberOverview(
+                id = member.id,
+                userId = member.userId,
+                role = member.role,
+                userName = member.user?.name,
+                userEmail = member.user?.email
+            )
+        },
         transactions = transactions
             .sortedByDescending { it.transactionDate }
             .map { transaction ->

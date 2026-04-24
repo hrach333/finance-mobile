@@ -2,12 +2,14 @@ package com.hrach.financeapp.ui.state
 
 import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
+import com.hrach.financeapp.data.model.GroupMemberOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
 import com.hrach.financeapp.data.repository.AccountMutationsRepository
 import com.hrach.financeapp.data.repository.CategoryMutationsRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import com.hrach.financeapp.data.repository.GroupMemberMutationsRepository
 import com.hrach.financeapp.data.repository.TransactionMutationsRepository
 
 class FinanceDashboardController(
@@ -16,6 +18,7 @@ class FinanceDashboardController(
     private val loader = FinanceOverviewLoader(repository)
     private val accountMutations = repository as? AccountMutationsRepository
     private val categoryMutations = repository as? CategoryMutationsRepository
+    private val memberMutations = repository as? GroupMemberMutationsRepository
     private val transactionMutations = repository as? TransactionMutationsRepository
     private var nextOptimisticIdValue = -1
 
@@ -117,6 +120,42 @@ class FinanceDashboardController(
         val overview = state.overview ?: return state
         state = state.copy(
             overview = overview.copy(categories = overview.categories.filterNot { it.id == category.id }),
+            isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewAddGroupMember(email: String, role: String): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        val member = GroupMemberOverview(
+            id = nextOptimisticId(),
+            role = role,
+            userName = email.substringBefore('@').takeIf { it.isNotBlank() },
+            userEmail = email.trim()
+        )
+        state = state.copy(
+            overview = overview.copy(members = overview.members + member),
+            isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewUpdateGroupMemberRole(member: GroupMemberOverview, role: String): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        state = state.copy(
+            overview = overview.copy(members = overview.members.map { if (it.id == member.id) it.copy(role = role) else it }),
+            isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewDeleteGroupMember(member: GroupMemberOverview): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        state = state.copy(
+            overview = overview.copy(members = overview.members.filterNot { it.id == member.id }),
             isLoading = false,
             errorMessage = null
         )
@@ -297,6 +336,33 @@ class FinanceDashboardController(
 
         return runMutationAction("Не удалось удалить категорию", rollbackState) {
             mutations.deleteCategory(category.id)
+        }
+    }
+
+    suspend fun addGroupMember(email: String, role: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val groupId = state.overview?.activeGroupId ?: return failAction("Нет активной группы")
+        val mutations = memberMutations ?: return failAction("Редактирование участников пока недоступно")
+
+        return runMutationAction("Не удалось добавить участника", rollbackState) {
+            mutations.addGroupMember(groupId = groupId, email = email, role = role)
+        }
+    }
+
+    suspend fun updateGroupMemberRole(member: GroupMemberOverview, role: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val groupId = state.overview?.activeGroupId ?: return failAction("Нет активной группы")
+        val mutations = memberMutations ?: return failAction("Редактирование участников пока недоступно")
+
+        return runMutationAction("Не удалось изменить роль участника", rollbackState) {
+            mutations.updateGroupMemberRole(groupId = groupId, memberId = member.id, role = role)
+        }
+    }
+
+    suspend fun deleteGroupMember(member: GroupMemberOverview, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val groupId = state.overview?.activeGroupId ?: return failAction("Нет активной группы")
+        val mutations = memberMutations ?: return failAction("Редактирование участников пока недоступно")
+
+        return runMutationAction("Не удалось удалить участника", rollbackState) {
+            mutations.deleteGroupMember(groupId = groupId, memberId = member.id)
         }
     }
 

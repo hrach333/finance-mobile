@@ -4,13 +4,20 @@ import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.FinanceSummary
+import com.hrach.financeapp.data.model.GroupMemberOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
 
-class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository, CategoryMutationsRepository, TransactionMutationsRepository {
+class DemoFinanceOverviewRepository :
+    FinanceOverviewRepository,
+    AccountMutationsRepository,
+    CategoryMutationsRepository,
+    GroupMemberMutationsRepository,
+    TransactionMutationsRepository {
     private var nextAccountId = 4
     private var nextCategoryId = 6
+    private var nextMemberId = 3
     private var nextTransactionId = 6
     private val categories = mutableListOf(
         CategoryOverview(id = 1, groupId = 1, type = "EXPENSE", name = "Продукты", iconKey = "shopping"),
@@ -56,6 +63,10 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             subtitle = "Цель: отпуск и подушка",
             colorToken = OverviewColorToken.Primary
         )
+    )
+    private val members = mutableListOf(
+        GroupMemberOverview(id = 1, userId = 1, role = "admin", userName = "Демо Админ", userEmail = "demo@smartbudget.app"),
+        GroupMemberOverview(id = 2, userId = 2, role = "member", userName = "Семья", userEmail = "family@smartbudget.app")
     )
     private val transactions = mutableListOf(
         TransactionOverview(
@@ -143,6 +154,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             ),
             accounts = accounts.toList(),
             categories = categories.toList(),
+            members = members.toList(),
             transactions = transactions.toList(),
             insights = listOf(
                 "Баланс месяца положительный: доходы выше расходов на 125 150 ₽.",
@@ -241,6 +253,26 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
 
     override suspend fun deleteCategory(categoryId: Int) {
         categories.removeAll { it.id == categoryId }
+    }
+
+    override suspend fun addGroupMember(groupId: Int, email: String, role: String) {
+        members += GroupMemberOverview(
+            id = nextMemberId++,
+            role = role,
+            userName = email.substringBefore('@').takeIf { it.isNotBlank() },
+            userEmail = email
+        )
+    }
+
+    override suspend fun updateGroupMemberRole(groupId: Int, memberId: Int, role: String) {
+        val index = members.indexOfFirst { it.id == memberId }
+        if (index < 0) return
+
+        members[index] = members[index].copy(role = role)
+    }
+
+    override suspend fun deleteGroupMember(groupId: Int, memberId: Int) {
+        members.removeAll { it.id == memberId }
     }
 
     override suspend fun createTransaction(
