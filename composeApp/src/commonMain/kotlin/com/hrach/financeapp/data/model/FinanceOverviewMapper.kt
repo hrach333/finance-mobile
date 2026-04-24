@@ -29,6 +29,13 @@ fun toFinanceOverview(
         userEmail = userEmail,
         activeGroupId = activeGroupId,
         activeGroupName = activeGroupName,
+        groups = groups.map { group ->
+            GroupOverview(
+                id = group.id,
+                name = group.name,
+                baseCurrency = group.baseCurrency
+            )
+        },
         summary = FinanceSummary(
             balanceLabel = (summary?.balance ?: accounts.sumOf { it.currentBalance }).moneyLabel(),
             incomeLabel = (summary?.income ?: 0.0).moneyLabel(),

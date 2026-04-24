@@ -6,6 +6,7 @@ import com.hrach.financeapp.data.dto.ApiListResponse
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
+import com.hrach.financeapp.data.dto.CreateGroupRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
@@ -13,6 +14,7 @@ import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
+import com.hrach.financeapp.data.dto.UpdateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
@@ -57,6 +59,18 @@ class KtorFinanceDataSource(
 
     override suspend fun getGroups(): List<GroupDto> =
         httpClient.get("groups").body<ApiListResponse<GroupDto>>().data
+
+    override suspend fun createGroup(request: CreateGroupRequest): GroupDto? {
+        return decodeGroupDtoOrNull(httpClient.post("groups") {
+            setBody(request)
+        }.bodyAsText())
+    }
+
+    override suspend fun updateGroup(groupId: Int, request: UpdateGroupRequest): GroupDto? {
+        return decodeGroupDtoOrNull(httpClient.put("groups/$groupId") {
+            setBody(request)
+        }.bodyAsText())
+    }
 
     override suspend fun getAccounts(groupId: Int): List<AccountDto> =
         httpClient.get("accounts") {
@@ -197,6 +211,15 @@ private fun decodeUserDto(payload: String): UserDto {
     val root = financeJson.parseToJsonElement(payload)
     val user = root.jsonObject["data"] ?: root.jsonObject["user"] ?: root
     return financeJson.decodeFromJsonElement(user)
+}
+
+private fun decodeGroupDtoOrNull(payload: String): GroupDto? {
+    if (payload.isBlank()) return null
+    return runCatching {
+        val root = financeJson.parseToJsonElement(payload)
+        val group = root.jsonObject["data"] ?: root.jsonObject["group"] ?: root
+        financeJson.decodeFromJsonElement<GroupDto>(group)
+    }.getOrNull()
 }
 
 class FinanceNetworkException(message: String, cause: Throwable? = null) : Exception(message, cause)

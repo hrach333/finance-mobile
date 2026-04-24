@@ -2,6 +2,7 @@ package com.hrach.financeapp.ui.state
 
 import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
+import com.hrach.financeapp.data.model.GroupOverview
 import com.hrach.financeapp.data.model.GroupMemberOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
@@ -9,6 +10,7 @@ import com.hrach.financeapp.data.model.TransactionOverview
 import com.hrach.financeapp.data.repository.AccountMutationsRepository
 import com.hrach.financeapp.data.repository.CategoryMutationsRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import com.hrach.financeapp.data.repository.GroupMutationsRepository
 import com.hrach.financeapp.data.repository.GroupMemberMutationsRepository
 import com.hrach.financeapp.data.repository.TransactionMutationsRepository
 
@@ -18,6 +20,7 @@ class FinanceDashboardController(
     private val loader = FinanceOverviewLoader(repository)
     private val accountMutations = repository as? AccountMutationsRepository
     private val categoryMutations = repository as? CategoryMutationsRepository
+    private val groupMutations = repository as? GroupMutationsRepository
     private val memberMutations = repository as? GroupMemberMutationsRepository
     private val transactionMutations = repository as? TransactionMutationsRepository
     private var nextOptimisticIdValue = -1
@@ -121,6 +124,63 @@ class FinanceDashboardController(
         state = state.copy(
             overview = overview.copy(categories = overview.categories.filterNot { it.id == category.id }),
             isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewCreateGroup(name: String, baseCurrency: String): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        val group = GroupOverview(
+            id = nextOptimisticId(),
+            name = name.trim(),
+            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+        )
+        state = state.copy(
+            overview = overview.copy(
+                activeGroupId = group.id,
+                activeGroupName = group.name,
+                groups = overview.groups + group,
+                accounts = emptyList(),
+                categories = emptyList(),
+                members = emptyList(),
+                transactions = emptyList()
+            ),
+            isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewUpdateGroup(group: GroupOverview, name: String, baseCurrency: String): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        val updated = group.copy(
+            name = name.trim(),
+            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+        )
+        state = state.copy(
+            overview = overview.copy(
+                activeGroupName = if (overview.activeGroupId == group.id) updated.name else overview.activeGroupName,
+                groups = overview.groups.map { if (it.id == group.id) updated else it }
+            ),
+            isLoading = false,
+            errorMessage = null
+        )
+        return state
+    }
+
+    fun previewSelectGroup(group: GroupOverview): FinanceDashboardState {
+        val overview = state.overview ?: return state
+        state = state.copy(
+            overview = overview.copy(
+                activeGroupId = group.id,
+                activeGroupName = group.name,
+                accounts = emptyList(),
+                categories = emptyList(),
+                members = emptyList(),
+                transactions = emptyList()
+            ),
+            isLoading = true,
             errorMessage = null
         )
         return state
@@ -336,6 +396,30 @@ class FinanceDashboardController(
 
         return runMutationAction("Не удалось удалить категорию", rollbackState) {
             mutations.deleteCategory(category.id)
+        }
+    }
+
+    suspend fun createGroup(name: String, baseCurrency: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val mutations = groupMutations ?: return failAction("Редактирование групп пока недоступно")
+
+        return runMutationAction("Не удалось создать группу", rollbackState) {
+            mutations.createGroup(name = name, baseCurrency = baseCurrency)
+        }
+    }
+
+    suspend fun updateGroup(group: GroupOverview, name: String, baseCurrency: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val mutations = groupMutations ?: return failAction("Редактирование групп пока недоступно")
+
+        return runMutationAction("Не удалось изменить группу", rollbackState) {
+            mutations.updateGroup(groupId = group.id, name = name, baseCurrency = baseCurrency)
+        }
+    }
+
+    suspend fun selectGroup(group: GroupOverview, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        val mutations = groupMutations ?: return failAction("Переключение групп пока недоступно")
+
+        return runMutationAction("Не удалось переключить группу", rollbackState) {
+            mutations.selectGroup(group.id)
         }
     }
 

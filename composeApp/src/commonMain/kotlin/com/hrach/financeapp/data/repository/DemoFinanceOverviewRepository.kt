@@ -4,6 +4,7 @@ import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.FinanceSummary
+import com.hrach.financeapp.data.model.GroupOverview
 import com.hrach.financeapp.data.model.GroupMemberOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
@@ -13,12 +14,18 @@ class DemoFinanceOverviewRepository :
     FinanceOverviewRepository,
     AccountMutationsRepository,
     CategoryMutationsRepository,
+    GroupMutationsRepository,
     GroupMemberMutationsRepository,
     TransactionMutationsRepository {
+    private var selectedGroupId = 1
+    private var nextGroupId = 2
     private var nextAccountId = 4
     private var nextCategoryId = 6
     private var nextMemberId = 3
     private var nextTransactionId = 6
+    private val groups = mutableListOf(
+        GroupOverview(id = 1, name = "Семейный бюджет", baseCurrency = "RUB")
+    )
     private val categories = mutableListOf(
         CategoryOverview(id = 1, groupId = 1, type = "EXPENSE", name = "Продукты", iconKey = "shopping"),
         CategoryOverview(id = 2, groupId = 1, type = "EXPENSE", name = "Транспорт", iconKey = "transport"),
@@ -142,20 +149,26 @@ class DemoFinanceOverviewRepository :
     )
 
     override suspend fun getOverview(): FinanceOverview {
+        val activeGroup = groups.firstOrNull { it.id == selectedGroupId } ?: groups.firstOrNull()
+        val groupId = activeGroup?.id
+        val groupAccounts = accounts.filter { it.groupId == groupId }
+        val groupCategories = categories.filter { it.groupId == groupId }
+        val groupTransactions = transactions.filter { it.groupId == groupId }
         return FinanceOverview(
             userEmail = "demo@smartbudget.app",
-            activeGroupId = 1,
-            activeGroupName = "Семейный бюджет",
+            activeGroupId = groupId,
+            activeGroupName = activeGroup?.name ?: "Нет группы",
+            groups = groups.toList(),
             summary = FinanceSummary(
-                balanceLabel = "376 820 ₽",
+                balanceLabel = groupAccounts.sumOf { it.currentBalance }.toDemoMoneyLabel(activeGroup?.baseCurrency ?: "RUB"),
                 incomeLabel = "168 000 ₽",
                 expenseLabel = "42 850 ₽",
-                subtitle = "4 счета, 2 участника группы"
+                subtitle = "${groupAccounts.size} счетов, ${members.size} участника группы"
             ),
-            accounts = accounts.toList(),
-            categories = categories.toList(),
+            accounts = groupAccounts,
+            categories = groupCategories,
             members = members.toList(),
-            transactions = transactions.toList(),
+            transactions = groupTransactions,
             insights = listOf(
                 "Баланс месяца положительный: доходы выше расходов на 125 150 ₽.",
                 "Самая крупная категория расходов сейчас: семья и продукты.",
@@ -253,6 +266,32 @@ class DemoFinanceOverviewRepository :
 
     override suspend fun deleteCategory(categoryId: Int) {
         categories.removeAll { it.id == categoryId }
+    }
+
+    override suspend fun createGroup(name: String, baseCurrency: String) {
+        val group = GroupOverview(
+            id = nextGroupId++,
+            name = name.trim(),
+            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+        )
+        groups += group
+        selectedGroupId = group.id
+    }
+
+    override suspend fun updateGroup(groupId: Int, name: String, baseCurrency: String) {
+        val index = groups.indexOfFirst { it.id == groupId }
+        if (index < 0) return
+
+        groups[index] = groups[index].copy(
+            name = name.trim(),
+            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+        )
+    }
+
+    override suspend fun selectGroup(groupId: Int) {
+        if (groups.any { it.id == groupId }) {
+            selectedGroupId = groupId
+        }
     }
 
     override suspend fun addGroupMember(groupId: Int, email: String, role: String) {

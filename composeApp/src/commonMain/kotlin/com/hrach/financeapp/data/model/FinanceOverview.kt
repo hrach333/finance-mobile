@@ -4,6 +4,7 @@ data class FinanceOverview(
     val userEmail: String,
     val activeGroupId: Int? = null,
     val activeGroupName: String,
+    val groups: List<GroupOverview> = emptyList(),
     val summary: FinanceSummary,
     val accounts: List<AccountOverview>,
     val categories: List<CategoryOverview> = emptyList(),
@@ -17,6 +18,12 @@ data class FinanceSummary(
     val incomeLabel: String,
     val expenseLabel: String,
     val subtitle: String
+)
+
+data class GroupOverview(
+    val id: Int,
+    val name: String,
+    val baseCurrency: String
 )
 
 data class AccountOverview(

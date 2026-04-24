@@ -4,8 +4,10 @@ import com.hrach.financeapp.data.dto.CreateAccountRequest
 import com.hrach.financeapp.data.dto.CreateCategoryRequest
 import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.AddGroupMemberRequest
+import com.hrach.financeapp.data.dto.CreateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
 import com.hrach.financeapp.data.dto.UpdateCategoryRequest
+import com.hrach.financeapp.data.dto.UpdateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.model.FinanceOverview
@@ -16,10 +18,11 @@ import kotlinx.coroutines.coroutineScope
 class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
     private val periodProvider: FinancePeriodProvider,
-    private val preferredGroupId: Int? = null
+    private var preferredGroupId: Int? = null
 ) : FinanceOverviewRepository,
     AccountMutationsRepository,
     CategoryMutationsRepository,
+    GroupMutationsRepository,
     GroupMemberMutationsRepository,
     TransactionMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
@@ -149,6 +152,36 @@ class RemoteFinanceOverviewRepository(
 
     override suspend fun deleteCategory(categoryId: Int) {
         dataSource.deleteCategory(categoryId)
+    }
+
+    override suspend fun createGroup(name: String, baseCurrency: String) {
+        val normalizedName = name.trim()
+        val normalizedCurrency = baseCurrency.trim().uppercase()
+        val createdGroup = dataSource.createGroup(
+            CreateGroupRequest(
+                name = normalizedName,
+                baseCurrency = normalizedCurrency
+            )
+        )
+        preferredGroupId = createdGroup?.id
+            ?: dataSource.getGroups().lastOrNull { group ->
+                group.name == normalizedName && group.baseCurrency.equals(normalizedCurrency, ignoreCase = true)
+            }?.id
+            ?: preferredGroupId
+    }
+
+    override suspend fun updateGroup(groupId: Int, name: String, baseCurrency: String) {
+        dataSource.updateGroup(
+            groupId = groupId,
+            request = UpdateGroupRequest(
+                name = name.trim(),
+                baseCurrency = baseCurrency.trim().uppercase()
+            )
+        )
+    }
+
+    override suspend fun selectGroup(groupId: Int) {
+        preferredGroupId = groupId
     }
 
     override suspend fun addGroupMember(groupId: Int, email: String, role: String) {

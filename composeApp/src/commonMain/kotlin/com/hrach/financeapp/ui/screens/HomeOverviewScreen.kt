@@ -21,9 +21,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,13 +39,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hrach.financeapp.data.model.FinanceOverview
+import com.hrach.financeapp.data.model.GroupOverview
 
 @Composable
 fun HomeOverviewScreen(
     overview: FinanceOverview,
     onLogout: (() -> Unit)?,
     onOpenMembers: () -> Unit = {},
-    onOpenCategories: () -> Unit = {}
+    onOpenCategories: () -> Unit = {},
+    onSelectGroup: (GroupOverview) -> Unit = {},
+    onOpenGroups: () -> Unit = {}
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -55,7 +64,11 @@ fun HomeOverviewScreen(
         }
 
         item {
-            GroupSelectorPreview(overview.activeGroupName)
+            GroupSelectorPreview(
+                overview = overview,
+                onSelectGroup = onSelectGroup,
+                onOpenSettings = onOpenGroups
+            )
         }
 
         item {
@@ -148,7 +161,13 @@ private fun OfflineStatusCard() {
 }
 
 @Composable
-private fun GroupSelectorPreview(groupName: String) {
+private fun GroupSelectorPreview(
+    overview: FinanceOverview,
+    onSelectGroup: (GroupOverview) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val activeGroup = overview.groups.firstOrNull { it.id == overview.activeGroupId }
     Card(
         shape = RoundedCornerShape(24.dp),
         backgroundColor = Color(0xFFF9F6FC),
@@ -163,15 +182,45 @@ private fun GroupSelectorPreview(groupName: String) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Группа", color = Color(0xFF6B6579), fontSize = 12.sp)
-                Text(groupName, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                Box {
+                    Button(
+                        onClick = { expanded = true },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+                        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+                    ) {
+                        Text(activeGroup?.name ?: overview.activeGroupName)
+                        Text("  v", fontWeight = FontWeight.Bold)
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        overview.groups.forEach { group ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    expanded = false
+                                    if (group.id != overview.activeGroupId) {
+                                        onSelectGroup(group)
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = if (group.id == overview.activeGroupId) "${group.name} • активна" else group.name,
+                                    color = if (group.id == overview.activeGroupId) Color(0xFF16A34A) else Color(0xFF2F2B3A)
+                                )
+                            }
+                        }
+                    }
+                }
             }
             Button(
-                onClick = {},
+                onClick = onOpenSettings,
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
                 elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
             ) {
-                Text("+")
+                Text("Настроить")
             }
         }
     }

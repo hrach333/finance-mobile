@@ -2,10 +2,11 @@ package com.hrach.financeapp.ui.state
 
 import com.hrach.financeapp.data.model.FinanceOverview
 
-enum class DashboardTab(val title: String, val glyph: String) {
-    Home("Главная", "Г"),
+enum class DashboardTab(val title: String, val glyph: String, val showInNavigation: Boolean = true) {
+    Home("Главная", "Д"),
     Transactions("Операции", "О"),
     Accounts("Счета", "С"),
+    Groups("Группы", "Г", showInNavigation = false),
     Categories("Категории", "К"),
     Members("Участники", "У"),
     Analytics("Аналитика", "А")

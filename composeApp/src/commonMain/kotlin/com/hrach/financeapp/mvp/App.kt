@@ -53,6 +53,7 @@ import com.hrach.financeapp.ui.screens.AccountsOverviewScreen
 import com.hrach.financeapp.ui.screens.AnalyticsOverviewScreen
 import com.hrach.financeapp.ui.screens.CategoriesOverviewScreen
 import com.hrach.financeapp.ui.screens.GroupMembersOverviewScreen
+import com.hrach.financeapp.ui.screens.GroupsOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import com.hrach.financeapp.ui.state.AuthResult
@@ -203,6 +204,16 @@ private fun FinanceOverviewApp(
                             },
                             onOpenCategories = {
                                 dashboardState = dashboardController.selectTab(DashboardTab.Categories)
+                            },
+                            onSelectGroup = { group ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewSelectGroup(group)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.selectGroup(group, rollbackState))
+                                }
+                            },
+                            onOpenGroups = {
+                                dashboardState = dashboardController.selectTab(DashboardTab.Groups)
                             }
                         )
                         DashboardTab.Transactions -> TransactionsOverviewScreen(
@@ -278,6 +289,33 @@ private fun FinanceOverviewApp(
                                 dashboardState = dashboardController.previewDeleteCategory(category)
                                 coroutineScope.launch {
                                     applyDashboardEvent(dashboardController.deleteCategory(category, rollbackState))
+                                }
+                            }
+                        )
+                        DashboardTab.Groups -> GroupsOverviewScreen(
+                            overview = loadedOverview,
+                            onBack = {
+                                dashboardState = dashboardController.selectTab(DashboardTab.Home)
+                            },
+                            onCreateGroup = { name, currency ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewCreateGroup(name, currency)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.createGroup(name, currency, rollbackState))
+                                }
+                            },
+                            onUpdateGroup = { group, name, currency ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewUpdateGroup(group, name, currency)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.updateGroup(group, name, currency, rollbackState))
+                                }
+                            },
+                            onSelectGroup = { group ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewSelectGroup(group)
+                                coroutineScope.launch {
+                                    applyDashboardEvent(dashboardController.selectGroup(group, rollbackState))
                                 }
                             }
                         )
@@ -487,7 +525,7 @@ private fun ResponsiveShell(
                 backgroundColor = Color.Transparent,
                 bottomBar = {
                     BottomNavigation(backgroundColor = Color(0xFFF9F6FC), elevation = 10.dp) {
-                        DashboardTab.entries.forEach { tab ->
+                        DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
                             BottomNavigationItem(
                                 selected = selectedTab == tab,
                                 onClick = { onTabSelected(tab) },
@@ -535,7 +573,7 @@ private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab)
             style = MaterialTheme.typography.body2
         )
         Spacer(modifier = Modifier.height(12.dp))
-        DashboardTab.entries.forEach { tab ->
+        DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
             RailItem(tab = tab, selected = selectedTab == tab, onClick = { onTabSelected(tab) })
         }
     }
