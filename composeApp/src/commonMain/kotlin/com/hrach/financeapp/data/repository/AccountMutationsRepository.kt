@@ -1,11 +1,14 @@
 package com.hrach.financeapp.data.repository
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
+
 interface AccountMutationsRepository {
     suspend fun createAccount(
         groupId: Int,
         name: String,
         type: String,
         initialBalance: Double,
+        currency: String = CurrencyCatalog.DEFAULT_CODE,
         shared: Boolean = true
     )
 

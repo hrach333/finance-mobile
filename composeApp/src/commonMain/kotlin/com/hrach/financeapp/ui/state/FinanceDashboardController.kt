@@ -1,5 +1,6 @@
 package com.hrach.financeapp.ui.state
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.GroupOverview
@@ -41,15 +42,16 @@ class FinanceDashboardController(
     fun previewCreateAccount(name: String, type: String, initialBalance: Double): FinanceDashboardState {
         val overview = state.overview ?: return state
         val groupId = overview.activeGroupId ?: return state
+        val currency = overview.activeGroupCurrency()
         val account = AccountOverview(
             id = nextOptimisticId(),
             groupId = groupId,
             title = name.trim(),
             type = type,
-            currency = "RUB",
+            currency = currency,
             initialBalance = initialBalance,
             currentBalance = initialBalance,
-            balanceLabel = initialBalance.moneyLabel("RUB"),
+            balanceLabel = initialBalance.moneyLabel(currency),
             subtitle = "${type.toAccountTypeLabel()} · Общий",
             colorToken = type.toAccountColorToken()
         )
@@ -134,7 +136,7 @@ class FinanceDashboardController(
         val group = GroupOverview(
             id = nextOptimisticId(),
             name = name.trim(),
-            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+            baseCurrency = CurrencyCatalog.normalize(baseCurrency)
         )
         state = state.copy(
             overview = overview.copy(
@@ -156,7 +158,7 @@ class FinanceDashboardController(
         val overview = state.overview ?: return state
         val updated = group.copy(
             name = name.trim(),
-            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+            baseCurrency = CurrencyCatalog.normalize(baseCurrency)
         )
         state = state.copy(
             overview = overview.copy(
@@ -324,13 +326,15 @@ class FinanceDashboardController(
     suspend fun createAccount(name: String, type: String, initialBalance: Double, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
         val groupId = state.overview?.activeGroupId ?: return failAction("Нет активной группы")
         val mutations = accountMutations ?: return failAction("Редактирование счетов пока недоступно")
+        val currency = state.overview?.activeGroupCurrency() ?: CurrencyCatalog.DEFAULT_CODE
 
         return runMutationAction("Не удалось изменить счет", rollbackState) {
             mutations.createAccount(
                 groupId = groupId,
                 name = name,
                 type = type,
-                initialBalance = initialBalance
+                initialBalance = initialBalance,
+                currency = currency
             )
         }
     }
@@ -555,8 +559,11 @@ private fun Double.moneyLabel(currency: String, kind: TransactionKind? = null): 
     }
     val rounded = kotlin.math.abs(this).toLong().toString()
     val grouped = rounded.reversed().chunked(3).joinToString(" ").reversed()
-    val symbol = if (currency == "RUB") "₽" else currency
-    return "$sign$grouped $symbol"
+    return "$sign$grouped ${CurrencyCatalog.symbolFor(currency)}"
+}
+
+private fun com.hrach.financeapp.data.model.FinanceOverview.activeGroupCurrency(): String {
+    return groups.firstOrNull { it.id == activeGroupId }?.baseCurrency ?: CurrencyCatalog.DEFAULT_CODE
 }
 
 private fun String.toAccountTypeLabel(): String = when (uppercase()) {

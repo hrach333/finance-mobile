@@ -1,5 +1,6 @@
 package com.hrach.financeapp.data.repository
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.AccountOverview
 import com.hrach.financeapp.data.model.CategoryOverview
 import com.hrach.financeapp.data.model.FinanceOverview
@@ -24,7 +25,7 @@ class DemoFinanceOverviewRepository :
     private var nextMemberId = 3
     private var nextTransactionId = 6
     private val groups = mutableListOf(
-        GroupOverview(id = 1, name = "Семейный бюджет", baseCurrency = "RUB")
+        GroupOverview(id = 1, name = "Семейный бюджет", baseCurrency = CurrencyCatalog.DEFAULT_CODE)
     )
     private val categories = mutableListOf(
         CategoryOverview(id = 1, groupId = 1, type = "EXPENSE", name = "Продукты", iconKey = "shopping"),
@@ -39,7 +40,7 @@ class DemoFinanceOverviewRepository :
             groupId = 1,
             title = "Основная карта",
             type = "CARD",
-            currency = "RUB",
+            currency = CurrencyCatalog.DEFAULT_CODE,
             initialBalance = 93_520.0,
             currentBalance = 93_520.0,
             balanceLabel = "93 520 ₽",
@@ -51,7 +52,7 @@ class DemoFinanceOverviewRepository :
             groupId = 1,
             title = "Наличные",
             type = "CASH",
-            currency = "RUB",
+            currency = CurrencyCatalog.DEFAULT_CODE,
             initialBalance = 18_300.0,
             currentBalance = 18_300.0,
             balanceLabel = "18 300 ₽",
@@ -63,7 +64,7 @@ class DemoFinanceOverviewRepository :
             groupId = 1,
             title = "Накопления",
             type = "SAVINGS",
-            currency = "RUB",
+            currency = CurrencyCatalog.DEFAULT_CODE,
             initialBalance = 265_000.0,
             currentBalance = 265_000.0,
             balanceLabel = "265 000 ₽",
@@ -160,9 +161,9 @@ class DemoFinanceOverviewRepository :
             activeGroupName = activeGroup?.name ?: "Нет группы",
             groups = groups.toList(),
             summary = FinanceSummary(
-                balanceLabel = groupAccounts.sumOf { it.currentBalance }.toDemoMoneyLabel(activeGroup?.baseCurrency ?: "RUB"),
-                incomeLabel = "168 000 ₽",
-                expenseLabel = "42 850 ₽",
+                balanceLabel = groupAccounts.sumOf { it.currentBalance }.toDemoMoneyLabel(activeGroup?.baseCurrency),
+                incomeLabel = 168_000.0.toDemoMoneyLabel(activeGroup?.baseCurrency),
+                expenseLabel = 42_850.0.toDemoMoneyLabel(activeGroup?.baseCurrency),
                 subtitle = "${groupAccounts.size} счетов, ${members.size} участника группы"
             ),
             accounts = groupAccounts,
@@ -182,6 +183,7 @@ class DemoFinanceOverviewRepository :
         name: String,
         type: String,
         initialBalance: Double,
+        currency: String,
         shared: Boolean
     ) {
         accounts += AccountOverview(
@@ -189,11 +191,11 @@ class DemoFinanceOverviewRepository :
             groupId = groupId,
             title = name,
             type = type,
-            currency = "RUB",
+            currency = currency,
             initialBalance = initialBalance,
             currentBalance = initialBalance,
             shared = shared,
-            balanceLabel = initialBalance.toDemoMoneyLabel(),
+            balanceLabel = initialBalance.toDemoMoneyLabel(currency),
             subtitle = "${type.toDemoAccountTypeLabel()} · ${if (shared) "Общий" else "Личный"}",
             colorToken = type.toDemoAccountColorToken()
         )
@@ -272,7 +274,7 @@ class DemoFinanceOverviewRepository :
         val group = GroupOverview(
             id = nextGroupId++,
             name = name.trim(),
-            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+            baseCurrency = CurrencyCatalog.normalize(baseCurrency)
         )
         groups += group
         selectedGroupId = group.id
@@ -284,7 +286,7 @@ class DemoFinanceOverviewRepository :
 
         groups[index] = groups[index].copy(
             name = name.trim(),
-            baseCurrency = baseCurrency.trim().uppercase().ifBlank { "RUB" }
+            baseCurrency = CurrencyCatalog.normalize(baseCurrency)
         )
     }
 
@@ -389,10 +391,9 @@ class DemoFinanceOverviewRepository :
     }
 }
 
-private fun Double.toDemoMoneyLabel(currency: String = "RUB"): String {
+private fun Double.toDemoMoneyLabel(currency: String? = CurrencyCatalog.DEFAULT_CODE): String {
     val rounded = toLong().toString().reversed().chunked(3).joinToString(" ").reversed()
-    val symbol = if (currency == "RUB") "₽" else currency
-    return "$rounded $symbol"
+    return "$rounded ${CurrencyCatalog.symbolFor(currency)}"
 }
 
 private fun String.toDemoAccountTypeLabel(): String = when (uppercase()) {

@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.GroupOverview
 
@@ -136,7 +137,11 @@ private fun GroupOverviewCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(group.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                    Text("Валюта: ${group.baseCurrency}", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                    Text(
+                        "Валюта: ${CurrencyCatalog.symbolFor(group.baseCurrency)} ${group.baseCurrency}",
+                        color = Color(0xFF6B6579),
+                        style = MaterialTheme.typography.body2
+                    )
                 }
                 Text(
                     text = if (selected) "Активна" else "Доступна",
@@ -162,12 +167,12 @@ private fun GroupOverviewCard(
 private fun GroupOverviewEditorDialog(
     title: String,
     initialName: String = "",
-    initialCurrency: String = "RUB",
+    initialCurrency: String = CurrencyCatalog.DEFAULT_CODE,
     onDismiss: () -> Unit,
     onSave: (String, String) -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
-    var currency by remember { mutableStateOf(initialCurrency.ifBlank { "RUB" }) }
+    var currency by remember { mutableStateOf(CurrencyCatalog.normalize(initialCurrency)) }
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -178,7 +183,7 @@ private fun GroupOverviewEditorDialog(
                     when {
                         name.isBlank() -> error = "Введите название"
                         currency.isBlank() -> error = "Выберите валюту"
-                        else -> onSave(name.trim(), currency.trim().uppercase())
+                        else -> onSave(name.trim(), CurrencyCatalog.normalize(currency))
                     }
                 },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
@@ -207,9 +212,9 @@ private fun GroupOverviewEditorDialog(
 
                 Text("Валюта", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CurrencyButton("RUB", currency) { currency = it }
-                    CurrencyButton("USD", currency) { currency = it }
-                    CurrencyButton("EUR", currency) { currency = it }
+                    CurrencyCatalog.supported.forEach { option ->
+                        CurrencyButton(option.code, currency) { currency = it }
+                    }
                 }
 
                 error?.let {
@@ -233,6 +238,6 @@ private fun CurrencyButton(value: String, selectedValue: String, onSelected: (St
         ),
         elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
     ) {
-        Text(value, style = MaterialTheme.typography.caption)
+        Text("$value ${CurrencyCatalog.symbolFor(value)}", style = MaterialTheme.typography.caption)
     }
 }

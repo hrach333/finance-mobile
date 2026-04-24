@@ -1,5 +1,6 @@
 package com.hrach.financeapp.data.model
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.GroupDto
@@ -22,6 +23,9 @@ fun toFinanceOverview(
     val activeGroupName = groups.firstOrNull { it.id == activeGroupId }?.name
         ?: groups.firstOrNull()?.name
         ?: "Нет группы"
+    val activeGroupCurrency = groups.firstOrNull { it.id == activeGroupId }?.baseCurrency
+        ?: groups.firstOrNull()?.baseCurrency
+        ?: CurrencyCatalog.DEFAULT_CODE
     val categoryNames = categories.associate { it.id to it.name }
     val accountNames = accounts.associate { it.id to it.name }
 
@@ -37,9 +41,9 @@ fun toFinanceOverview(
             )
         },
         summary = FinanceSummary(
-            balanceLabel = (summary?.balance ?: accounts.sumOf { it.currentBalance }).moneyLabel(),
-            incomeLabel = (summary?.income ?: 0.0).moneyLabel(),
-            expenseLabel = (summary?.expense ?: 0.0).moneyLabel(),
+            balanceLabel = (summary?.balance ?: accounts.sumOf { it.currentBalance }).moneyLabel(activeGroupCurrency),
+            incomeLabel = (summary?.income ?: 0.0).moneyLabel(activeGroupCurrency),
+            expenseLabel = (summary?.expense ?: 0.0).moneyLabel(activeGroupCurrency),
             subtitle = "${accounts.size} ${accounts.size.plural("счет", "счета", "счетов")}, ${members.size} ${members.size.plural("участник", "участника", "участников")}"
         ),
         accounts = accounts.map { account ->
@@ -103,19 +107,20 @@ fun toFinanceOverview(
                     }
                 )
             },
-        insights = buildInsights(summary, categories, transactions)
+        insights = buildInsights(summary, categories, transactions, activeGroupCurrency)
     )
 }
 
 private fun buildInsights(
     summary: SummaryDto?,
     categories: List<CategoryDto>,
-    transactions: List<TransactionDto>
+    transactions: List<TransactionDto>,
+    currency: String
 ): List<String> {
     val insights = mutableListOf<String>()
     if (summary != null) {
         val direction = if (summary.balance >= 0.0) "положительный" else "отрицательный"
-        insights += "Баланс периода $direction: ${summary.balance.moneyLabel()}."
+        insights += "Баланс периода $direction: ${summary.balance.moneyLabel(currency)}."
     }
 
     val categoryNames = categories.associate { it.id to it.name }
@@ -135,7 +140,7 @@ private fun buildInsights(
     return insights
 }
 
-private fun Double.moneyLabel(currency: String = "RUB", kind: TransactionKind? = null): String {
+private fun Double.moneyLabel(currency: String = CurrencyCatalog.DEFAULT_CODE, kind: TransactionKind? = null): String {
     val sign = when (kind) {
         TransactionKind.Income -> "+"
         TransactionKind.Expense -> "-"
@@ -143,14 +148,7 @@ private fun Double.moneyLabel(currency: String = "RUB", kind: TransactionKind? =
     }
     val rounded = abs(this).roundToLong().toString()
     val grouped = rounded.reversed().chunked(3).joinToString(" ").reversed()
-    return "$sign$grouped ${currency.currencySymbol()}"
-}
-
-private fun String.currencySymbol(): String = when (uppercase()) {
-    "RUB" -> "₽"
-    "USD" -> "$"
-    "EUR" -> "€"
-    else -> this
+    return "$sign$grouped ${CurrencyCatalog.symbolFor(currency)}"
 }
 
 private fun String.toAccountTypeLabel(): String = when (uppercase()) {

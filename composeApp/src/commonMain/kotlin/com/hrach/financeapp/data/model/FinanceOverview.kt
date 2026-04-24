@@ -1,5 +1,7 @@
 package com.hrach.financeapp.data.model
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
+
 data class FinanceOverview(
     val userEmail: String,
     val activeGroupId: Int? = null,
@@ -32,7 +34,7 @@ data class AccountOverview(
     val userId: Int? = null,
     val title: String,
     val type: String = "CASH",
-    val currency: String = "RUB",
+    val currency: String = CurrencyCatalog.DEFAULT_CODE,
     val initialBalance: Double = 0.0,
     val currentBalance: Double = 0.0,
     val shared: Boolean = true,
@@ -51,7 +53,7 @@ data class TransactionOverview(
     val category: String,
     val comment: String,
     val amount: Double = 0.0,
-    val currency: String = "RUB",
+    val currency: String = CurrencyCatalog.DEFAULT_CODE,
     val transactionDate: String = "",
     val amountLabel: String,
     val dateLabel: String,

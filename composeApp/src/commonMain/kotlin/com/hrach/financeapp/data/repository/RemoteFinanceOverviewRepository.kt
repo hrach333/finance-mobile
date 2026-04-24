@@ -10,6 +10,7 @@ import com.hrach.financeapp.data.dto.UpdateCategoryRequest
 import com.hrach.financeapp.data.dto.UpdateGroupRequest
 import com.hrach.financeapp.data.dto.UpdateGroupMemberRoleRequest
 import com.hrach.financeapp.data.dto.UpdateTransactionRequest
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
 import kotlinx.coroutines.async
@@ -72,6 +73,7 @@ class RemoteFinanceOverviewRepository(
         name: String,
         type: String,
         initialBalance: Double,
+        currency: String,
         shared: Boolean
     ) {
         dataSource.createAccount(
@@ -80,7 +82,7 @@ class RemoteFinanceOverviewRepository(
                 userId = null,
                 name = name.trim(),
                 type = type,
-                currency = "RUB",
+                currency = currency,
                 initialBalance = initialBalance,
                 shared = shared
             )
@@ -156,7 +158,7 @@ class RemoteFinanceOverviewRepository(
 
     override suspend fun createGroup(name: String, baseCurrency: String) {
         val normalizedName = name.trim()
-        val normalizedCurrency = baseCurrency.trim().uppercase()
+        val normalizedCurrency = CurrencyCatalog.normalize(baseCurrency)
         val createdGroup = dataSource.createGroup(
             CreateGroupRequest(
                 name = normalizedName,
@@ -175,7 +177,7 @@ class RemoteFinanceOverviewRepository(
             groupId = groupId,
             request = UpdateGroupRequest(
                 name = name.trim(),
-                baseCurrency = baseCurrency.trim().uppercase()
+                baseCurrency = CurrencyCatalog.normalize(baseCurrency)
             )
         )
     }

@@ -1,10 +1,11 @@
 package com.hrach.financeapp.ui.utils
 
+import com.hrach.financeapp.data.currency.CurrencyCatalog
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-fun Double.toMoneyText(currency: String = "RUB"): String {
-    val suffix = if (currency.uppercase() == "RUB") "₽" else currency
+fun Double.toMoneyText(currency: String = CurrencyCatalog.DEFAULT_CODE): String {
+    val suffix = CurrencyCatalog.symbolFor(currency)
     val normalized = if (this % 1.0 == 0.0) {
         this.toLong().toString()
     } else {
