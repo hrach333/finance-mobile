@@ -36,6 +36,10 @@ class KtorFinanceDataSource(
         baseUrl = baseUrl
     )
 ) : FinanceDataSource {
+    fun close() {
+        httpClient.close()
+    }
+
     override suspend fun me(): UserDto =
         decodeUserDto(httpClient.get("me").bodyAsText())
 

@@ -150,6 +150,12 @@ private fun AuthenticatedApp(
                 sessionStore.clearToken()
                 token = null
             }
+        },
+        onAuthExpired = {
+            coroutineScope.launch {
+                sessionStore.clearToken()
+                token = null
+            }
         }
     )
 }
@@ -157,7 +163,8 @@ private fun AuthenticatedApp(
 @Composable
 private fun FinanceOverviewApp(
     repository: FinanceOverviewRepository,
-    onLogout: (() -> Unit)?
+    onLogout: (() -> Unit)?,
+    onAuthExpired: (() -> Unit)? = null
 ) {
         var selectedTab by remember { mutableStateOf(MvpTab.Home) }
         var overview by remember(repository) { mutableStateOf<FinanceOverview?>(null) }
@@ -166,7 +173,14 @@ private fun FinanceOverviewApp(
         LaunchedEffect(repository) {
             loadingError = null
             overview = runCatching { repository.getOverview() }
-                .onFailure { loadingError = it.message ?: "Не удалось загрузить данные" }
+                .onFailure {
+                    val message = it.message ?: "Не удалось загрузить данные"
+                    if (message.isAuthFailureMessage()) {
+                        onAuthExpired?.invoke()
+                    } else {
+                        loadingError = message
+                    }
+                }
                 .getOrNull()
         }
 
@@ -188,6 +202,12 @@ private fun FinanceOverviewApp(
                 }
             }
         }
+}
+
+private fun String.isAuthFailureMessage(): Boolean {
+    return contains("401", ignoreCase = true) ||
+        contains("unauthorized", ignoreCase = true) ||
+        contains("unauthenticated", ignoreCase = true)
 }
 
 @Composable

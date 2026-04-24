@@ -17,6 +17,10 @@ class KtorAuthRepository(
         baseUrl = baseUrl
     )
 ) : AuthRepository {
+    fun close() {
+        httpClient.close()
+    }
+
     override suspend fun login(email: String, password: String): AuthResponseDto =
         httpClient.post("login") {
             setBody(LoginRequest(email = email, password = password))

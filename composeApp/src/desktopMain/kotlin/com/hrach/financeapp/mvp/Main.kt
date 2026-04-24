@@ -9,16 +9,28 @@ import com.hrach.financeapp.data.repository.CurrentMonthFinancePeriodProvider
 import com.hrach.financeapp.data.repository.RemoteFinanceOverviewRepository
 
 fun main() = application {
+    val closeHandlers = mutableListOf<() -> Unit>()
+    val authRepository = KtorAuthRepository().also { repository ->
+        closeHandlers += { repository.close() }
+    }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            closeHandlers.asReversed().forEach { close ->
+                runCatching { close() }
+            }
+            exitApplication()
+        },
         title = "SmartBudget MVP"
     ) {
         App(
-            authRepository = KtorAuthRepository(),
+            authRepository = authRepository,
             sessionStore = DesktopSessionStore(),
             repositoryFactory = { tokenProvider ->
+                val dataSource = KtorFinanceDataSource(tokenProvider = tokenProvider)
+                closeHandlers += { dataSource.close() }
                 RemoteFinanceOverviewRepository(
-                    dataSource = KtorFinanceDataSource(tokenProvider = tokenProvider),
+                    dataSource = dataSource,
                     periodProvider = CurrentMonthFinancePeriodProvider()
                 )
             }
