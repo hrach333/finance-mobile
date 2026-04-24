@@ -1,5 +1,8 @@
-﻿package com.hrach.financeapp.data.dto
+package com.hrach.financeapp.data.dto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CreateAccountRequest(
     val groupId: Int,
     val userId: Int?,
@@ -9,4 +12,3 @@ data class CreateAccountRequest(
     val initialBalance: Double,
     val shared: Boolean
 )
-

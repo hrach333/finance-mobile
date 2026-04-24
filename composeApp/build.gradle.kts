@@ -1,12 +1,15 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val composeMultiplatformVersion = "1.10.3"
+val ktorVersion = "3.3.1"
+val kotlinxDatetimeVersion = "0.7.1"
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.application")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
 }
 
@@ -38,6 +41,11 @@ kotlin {
                 implementation("org.jetbrains.compose.material:material:$composeMultiplatformVersion")
                 implementation("org.jetbrains.compose.ui:ui:$composeMultiplatformVersion")
                 implementation("org.jetbrains.compose.components:components-resources:$composeMultiplatformVersion")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
+                implementation("io.ktor:ktor-client-core:$ktorVersion")
+                implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+                implementation("io.ktor:ktor-client-logging:$ktorVersion")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
             }
         }
 
@@ -55,6 +63,7 @@ kotlin {
                 implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+                implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
 
                 implementation("com.squareup.retrofit2:retrofit:2.11.0")
                 implementation("com.squareup.retrofit2:converter-gson:2.11.0")
@@ -71,6 +80,7 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("io.ktor:ktor-client-cio:$ktorVersion")
             }
         }
     }
@@ -101,6 +111,11 @@ android {
             "boolean",
             "FEATURE_AI_HELP_BUTTON",
             providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("false").get()
+        )
+        buildConfigField(
+            "String",
+            "FINANCE_API_TOKEN",
+            "\"${providers.gradleProperty("FINANCE_API_TOKEN").orElse("").get()}\""
         )
     }
 

@@ -1,5 +1,8 @@
-﻿package com.hrach.financeapp.data.dto
+package com.hrach.financeapp.data.dto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class TransactionDto(
     val id: Int,
     val groupId: Int,
@@ -12,4 +15,3 @@ data class TransactionDto(
     val transactionDate: String,
     val comment: String?
 )
-

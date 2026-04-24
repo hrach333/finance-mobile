@@ -1,5 +1,8 @@
-﻿package com.hrach.financeapp.data.dto
+package com.hrach.financeapp.data.dto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class UpdateAccountRequest(
     val groupId: Int,
     val userId: Int?,
@@ -11,4 +14,3 @@ data class UpdateAccountRequest(
     val shared: Boolean,
     val isActive: Boolean
 )
-
