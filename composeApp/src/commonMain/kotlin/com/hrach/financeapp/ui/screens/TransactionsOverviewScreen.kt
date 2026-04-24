@@ -24,6 +24,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +63,31 @@ fun TransactionsOverviewScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<TransactionOverview?>(null) }
     var deleteTarget by remember { mutableStateOf<TransactionOverview?>(null) }
+    var selectedCategoryId by remember(overview.activeGroupId) { mutableStateOf<Int?>(null) }
+    var dateFrom by remember(overview.activeGroupId) { mutableStateOf("") }
+    var dateTo by remember(overview.activeGroupId) { mutableStateOf("") }
+    var dateFilterTarget by remember { mutableStateOf<DateFilterTarget?>(null) }
+    var page by remember(overview.activeGroupId) { mutableStateOf(0) }
+    val pageSize = 15
+    val filteredTransactions = remember(overview.transactions, selectedCategoryId, dateFrom, dateTo) {
+        val fromIso = parseUiOrIsoDateToIso(dateFrom)
+        val toIso = parseUiOrIsoDateToIso(dateTo)
+        overview.transactions.filter { transaction ->
+            val categoryMatches = selectedCategoryId == null || transaction.categoryId == selectedCategoryId
+            val transactionDate = parseUiOrIsoDateToIso(transaction.transactionDate)
+            val fromMatches = fromIso == null || (transactionDate != null && transactionDate >= fromIso)
+            val toMatches = toIso == null || (transactionDate != null && transactionDate <= toIso)
+            categoryMatches && fromMatches && toMatches
+        }
+    }
+    val totalPages = ((filteredTransactions.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    val pagedTransactions = filteredTransactions.drop(page * pageSize).take(pageSize)
+
+    LaunchedEffect(filteredTransactions.size, page) {
+        if (page >= totalPages) {
+            page = totalPages - 1
+        }
+    }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -76,12 +102,56 @@ fun TransactionsOverviewScreen(
                 Text("Добавить операцию")
             }
         }
-        items(overview.transactions) { transaction ->
+        item {
+            TransactionFilters(
+                categories = overview.categories,
+                selectedCategoryId = selectedCategoryId,
+                dateFrom = dateFrom,
+                dateTo = dateTo,
+                foundCount = filteredTransactions.size,
+                onCategorySelected = {
+                    selectedCategoryId = it
+                    page = 0
+                },
+                onDateFromChanged = {
+                    dateFrom = it
+                    page = 0
+                },
+                onDateToChanged = {
+                    dateTo = it
+                    page = 0
+                },
+                onPickDateFrom = { dateFilterTarget = DateFilterTarget.From },
+                onPickDateTo = { dateFilterTarget = DateFilterTarget.To },
+                onClear = {
+                    selectedCategoryId = null
+                    dateFrom = ""
+                    dateTo = ""
+                    page = 0
+                }
+            )
+        }
+        items(pagedTransactions) { transaction ->
             TransactionOverviewCard(
                 transaction = transaction,
                 onEdit = { editTarget = transaction },
                 onDelete = { deleteTarget = transaction }
             )
+        }
+        if (filteredTransactions.isEmpty()) {
+            item {
+                EmptyTransactionsCard()
+            }
+        }
+        if (filteredTransactions.size > pageSize) {
+            item {
+                TransactionsPager(
+                    page = page,
+                    totalPages = totalPages,
+                    onPrevious = { if (page > 0) page -= 1 },
+                    onNext = { if (page < totalPages - 1) page += 1 }
+                )
+            }
         }
     }
 
@@ -140,6 +210,209 @@ fun TransactionsOverviewScreen(
             text = { Text("${transaction.category}: ${transaction.amountLabel}") }
         )
     }
+
+    dateFilterTarget?.let { target ->
+        TransactionDatePickerDialog(
+            selectedDate = when (target) {
+                DateFilterTarget.From -> dateFrom
+                DateFilterTarget.To -> dateTo
+            }.ifBlank { currentUiDate() },
+            onDismiss = { dateFilterTarget = null },
+            onDateSelected = { selectedIsoDate ->
+                val selectedUiDate = formatIsoDateForUi(selectedIsoDate)
+                when (target) {
+                    DateFilterTarget.From -> dateFrom = selectedUiDate
+                    DateFilterTarget.To -> dateTo = selectedUiDate
+                }
+                page = 0
+                dateFilterTarget = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun TransactionFilters(
+    categories: List<CategoryOverview>,
+    selectedCategoryId: Int?,
+    dateFrom: String,
+    dateTo: String,
+    foundCount: Int,
+    onCategorySelected: (Int?) -> Unit,
+    onDateFromChanged: (String) -> Unit,
+    onDateToChanged: (String) -> Unit,
+    onPickDateFrom: () -> Unit,
+    onPickDateTo: () -> Unit,
+    onClear: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        backgroundColor = Color(0xFFF9F6FC),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+        elevation = 4.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Фильтры", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                Text("Найдено: $foundCount", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Категория", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                FilterButton(
+                    label = "Все категории",
+                    selected = selectedCategoryId == null,
+                    onClick = { onCategorySelected(null) }
+                )
+                categories.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        row.forEach { category ->
+                            FilterButton(
+                                label = category.name,
+                                selected = selectedCategoryId == category.id,
+                                onClick = { onCategorySelected(category.id) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (row.size == 1) {
+                            Box(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                DateFilterField(
+                    label = "Дата с",
+                    value = dateFrom,
+                    onValueChange = onDateFromChanged,
+                    onPick = onPickDateFrom,
+                    modifier = Modifier.weight(1f)
+                )
+                DateFilterField(
+                    label = "Дата по",
+                    value = dateTo,
+                    onValueChange = onDateToChanged,
+                    onPick = onPickDateTo,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            TextButton(onClick = onClear) {
+                Text("Сбросить фильтры")
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = if (selected) Color(0xFF5E4B8B) else Color(0xFFF1E7FB),
+            contentColor = if (selected) Color.White else Color(0xFF5E4B8B)
+        ),
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.caption)
+    }
+}
+
+@Composable
+private fun DateFilterField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onPick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(
+            onClick = onPick,
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Выбрать")
+        }
+    }
+}
+
+@Composable
+private fun EmptyTransactionsCard() {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        backgroundColor = Color(0xFFF9F6FC),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+        elevation = 3.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Операции по выбранным фильтрам не найдены.",
+            color = Color(0xFF6B6579),
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun TransactionsPager(
+    page: Int,
+    totalPages: Int,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = onPrevious,
+            enabled = page > 0,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+        ) {
+            Text("Назад")
+        }
+        Text("Страница ${page + 1} из $totalPages", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+        Button(
+            onClick = onNext,
+            enabled = page < totalPages - 1,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+        ) {
+            Text("Вперед")
+        }
+    }
+}
+
+private enum class DateFilterTarget {
+    From,
+    To
 }
 
 @Composable
