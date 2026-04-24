@@ -26,7 +26,6 @@ import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
-import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
@@ -63,6 +62,8 @@ import com.hrach.financeapp.ui.state.DashboardTab
 import com.hrach.financeapp.ui.state.FinanceDashboardController
 import com.hrach.financeapp.ui.state.FinanceDashboardEvent
 import com.hrach.financeapp.ui.state.FinanceDashboardState
+import com.hrach.financeapp.ui.screens.AccountsOverviewScreen
+import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import kotlinx.coroutines.launch
 
 private val backgroundGradient = Brush.verticalGradient(
@@ -199,8 +200,8 @@ private fun FinanceOverviewApp(
                 } else {
                     when (dashboardState.selectedTab) {
                         DashboardTab.Home -> HomeDashboard(loadedOverview, onLogout)
-                        DashboardTab.Transactions -> TransactionsDashboard(loadedOverview)
-                        DashboardTab.Accounts -> AccountsDashboard(loadedOverview)
+                        DashboardTab.Transactions -> TransactionsOverviewScreen(loadedOverview)
+                        DashboardTab.Accounts -> AccountsOverviewScreen(loadedOverview)
                         DashboardTab.Analytics -> AnalyticsDashboard(loadedOverview)
                     }
                 }
@@ -515,35 +516,6 @@ private fun HomeDashboard(overview: FinanceOverview, onLogout: (() -> Unit)?) {
 }
 
 @Composable
-private fun TransactionsDashboard(overview: FinanceOverview) {
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            HeaderBlock(title = "Операции", subtitle = "Демонстрационный список до подключения Laravel API")
-        }
-        items(overview.transactions) { transaction ->
-            TransactionCard(transaction)
-        }
-    }
-}
-
-@Composable
-private fun AccountsDashboard(overview: FinanceOverview) {
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            HeaderBlock(title = "Счета", subtitle = "Баланс по семейной группе")
-        }
-        items(overview.accounts) { account ->
-            AccountPreviewCard(
-                title = account.title,
-                balance = account.balanceLabel,
-                subtitle = account.subtitle,
-                tint = account.colorToken.toColor()
-            )
-        }
-    }
-}
-
-@Composable
 private fun AnalyticsDashboard(overview: FinanceOverview) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -788,26 +760,6 @@ private fun ActionCard(title: String, glyph: String, tint: Color, boxColor: Colo
                 Text(glyph, color = tint, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             }
             Text(title, style = MaterialTheme.typography.h6, fontWeight = FontWeight.SemiBold, color = Color(0xFF2F2B3A))
-        }
-    }
-}
-
-@Composable
-private fun AccountPreviewCard(title: String, balance: String, subtitle: String, tint: Color) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                Text(balance, color = tint, fontWeight = FontWeight.Bold)
-            }
-            Divider(color = Color.White.copy(alpha = 0.7f))
-            Text(subtitle, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
         }
     }
 }
