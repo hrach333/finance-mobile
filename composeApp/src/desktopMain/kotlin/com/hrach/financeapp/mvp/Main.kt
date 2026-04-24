@@ -2,6 +2,8 @@ package com.hrach.financeapp.mvp
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.hrach.financeapp.data.auth.DesktopSessionStore
+import com.hrach.financeapp.data.network.KtorAuthRepository
 import com.hrach.financeapp.data.network.KtorFinanceDataSource
 import com.hrach.financeapp.data.repository.CurrentMonthFinancePeriodProvider
 import com.hrach.financeapp.data.repository.RemoteFinanceOverviewRepository
@@ -12,15 +14,14 @@ fun main() = application {
         title = "SmartBudget MVP"
     ) {
         App(
-            repository = RemoteFinanceOverviewRepository(
-                dataSource = KtorFinanceDataSource(
-                    tokenProvider = {
-                        System.getenv("FINANCE_API_TOKEN")
-                            ?: System.getProperty("finance.api.token")
-                    }
-                ),
-                periodProvider = CurrentMonthFinancePeriodProvider()
-            )
+            authRepository = KtorAuthRepository(),
+            sessionStore = DesktopSessionStore(),
+            repositoryFactory = { tokenProvider ->
+                RemoteFinanceOverviewRepository(
+                    dataSource = KtorFinanceDataSource(tokenProvider = tokenProvider),
+                    periodProvider = CurrentMonthFinancePeriodProvider()
+                )
+            }
         )
     }
 }

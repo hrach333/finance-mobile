@@ -31,12 +31,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,14 +46,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hrach.financeapp.data.auth.SessionStore
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
+import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import kotlinx.coroutines.launch
 
 private enum class MvpTab(val title: String, val glyph: String) {
     Home("Главная", "Г"),
@@ -66,7 +72,12 @@ private val backgroundGradient = Brush.verticalGradient(
 
 
 @Composable
-fun App(repository: FinanceOverviewRepository = DemoFinanceOverviewRepository()) {
+fun App(
+    repository: FinanceOverviewRepository = DemoFinanceOverviewRepository(),
+    authRepository: AuthRepository? = null,
+    sessionStore: SessionStore? = null,
+    repositoryFactory: (((() -> String?) -> FinanceOverviewRepository))? = null
+) {
     MaterialTheme(
         colors = lightColors(
             primary = Color(0xFF5E4B8B),
@@ -77,6 +88,77 @@ fun App(repository: FinanceOverviewRepository = DemoFinanceOverviewRepository())
             error = Color(0xFFE85B6A)
         )
     ) {
+        if (authRepository != null && sessionStore != null && repositoryFactory != null) {
+            AuthenticatedApp(
+                authRepository = authRepository,
+                sessionStore = sessionStore,
+                repositoryFactory = repositoryFactory
+            )
+            return@MaterialTheme
+        }
+
+        FinanceOverviewApp(repository = repository, onLogout = null)
+    }
+}
+
+@Composable
+private fun AuthenticatedApp(
+    authRepository: AuthRepository,
+    sessionStore: SessionStore,
+    repositoryFactory: (() -> String?) -> FinanceOverviewRepository
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var sessionLoaded by remember(sessionStore) { mutableStateOf(false) }
+    var token by remember(sessionStore) { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(sessionStore) {
+        token = sessionStore.getToken()
+        sessionLoaded = true
+    }
+
+    if (!sessionLoaded) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
+            Box(modifier = Modifier.fillMaxSize().background(backgroundGradient).padding(24.dp)) {
+                LoadingDashboard(error = null)
+            }
+        }
+        return
+    }
+
+    val activeToken = token
+    if (activeToken.isNullOrBlank()) {
+        AuthScreen(
+            authRepository = authRepository,
+            onAuthenticated = { authToken ->
+                coroutineScope.launch {
+                    sessionStore.saveToken(authToken)
+                    token = authToken
+                }
+            }
+        )
+        return
+    }
+
+    val overviewRepository = remember(activeToken, repositoryFactory) {
+        repositoryFactory { token }
+    }
+    FinanceOverviewApp(
+        repository = overviewRepository,
+        onLogout = {
+            coroutineScope.launch {
+                authRepository.logout(token)
+                sessionStore.clearToken()
+                token = null
+            }
+        }
+    )
+}
+
+@Composable
+private fun FinanceOverviewApp(
+    repository: FinanceOverviewRepository,
+    onLogout: (() -> Unit)?
+) {
         var selectedTab by remember { mutableStateOf(MvpTab.Home) }
         var overview by remember(repository) { mutableStateOf<FinanceOverview?>(null) }
         var loadingError by remember(repository) { mutableStateOf<String?>(null) }
@@ -98,10 +180,131 @@ fun App(repository: FinanceOverviewRepository = DemoFinanceOverviewRepository())
                     LoadingDashboard(error = loadingError)
                 } else {
                     when (selectedTab) {
-                        MvpTab.Home -> HomeDashboard(loadedOverview)
+                        MvpTab.Home -> HomeDashboard(loadedOverview, onLogout)
                         MvpTab.Transactions -> TransactionsDashboard(loadedOverview)
                         MvpTab.Accounts -> AccountsDashboard(loadedOverview)
                         MvpTab.Analytics -> AnalyticsDashboard(loadedOverview)
+                    }
+                }
+            }
+        }
+}
+
+@Composable
+private fun AuthScreen(
+    authRepository: AuthRepository,
+    onAuthenticated: (String) -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var isRegisterMode by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().background(backgroundGradient)) {
+            val widthModifier = if (maxWidth >= 760.dp) {
+                Modifier.width(430.dp)
+            } else {
+                Modifier.fillMaxWidth()
+            }
+
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                backgroundColor = Color(0xFFF9F6FC),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                elevation = 6.dp,
+                modifier = widthModifier
+                    .align(Alignment.Center)
+                    .padding(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = if (isRegisterMode) "Регистрация" else "Вход",
+                        style = MaterialTheme.typography.h5,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF23212B)
+                    )
+                    Text(
+                        text = "SmartBudget",
+                        style = MaterialTheme.typography.body2,
+                        color = Color(0xFF6B6579)
+                    )
+
+                    if (isRegisterMode) {
+                        TextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Имя") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
+                    TextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    TextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Пароль") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    error?.let {
+                        Text(text = it, color = Color(0xFFE85B6A), style = MaterialTheme.typography.body2)
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                isLoading = true
+                                error = null
+                                runCatching {
+                                    if (isRegisterMode) {
+                                        authRepository.register(name.trim(), email.trim(), password)
+                                    } else {
+                                        authRepository.login(email.trim(), password)
+                                    }
+                                }.onSuccess { response ->
+                                    onAuthenticated(response.token)
+                                }.onFailure { throwable ->
+                                    error = throwable.message ?: "Не удалось выполнить вход"
+                                }
+                                isLoading = false
+                            }
+                        },
+                        enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || name.isNotBlank()),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (isLoading) "Подождите..." else if (isRegisterMode) "Создать аккаунт" else "Войти")
+                    }
+
+                    Button(
+                        onClick = {
+                            isRegisterMode = !isRegisterMode
+                            error = null
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+                        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (isRegisterMode) "У меня уже есть аккаунт" else "Создать новый аккаунт")
                     }
                 }
             }
@@ -247,10 +450,10 @@ private fun NavigationGlyph(tab: MvpTab, selected: Boolean) {
 }
 
 @Composable
-private fun HomeDashboard(overview: FinanceOverview) {
+private fun HomeDashboard(overview: FinanceOverview, onLogout: (() -> Unit)?) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            HeaderBlock(title = "Главная", subtitle = "Пользователь: ${overview.userEmail}")
+            HeaderBlock(title = "Главная", subtitle = "Пользователь: ${overview.userEmail}", onLogout = onLogout)
         }
 
         item {
@@ -330,6 +533,11 @@ private fun AnalyticsDashboard(overview: FinanceOverview) {
 
 @Composable
 private fun HeaderBlock(title: String, subtitle: String) {
+    HeaderBlock(title = title, subtitle = subtitle, onLogout = null)
+}
+
+@Composable
+private fun HeaderBlock(title: String, subtitle: String, onLogout: (() -> Unit)?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -345,7 +553,8 @@ private fun HeaderBlock(title: String, subtitle: String) {
             Text(text = subtitle, color = Color(0xFF4B4760), style = MaterialTheme.typography.body2)
         }
         Button(
-            onClick = {},
+            onClick = { onLogout?.invoke() },
+            enabled = onLogout != null,
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF9F6FC), contentColor = Color(0xFF5E4B8B)),
             elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
