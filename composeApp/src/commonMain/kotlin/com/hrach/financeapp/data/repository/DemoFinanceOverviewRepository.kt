@@ -7,8 +7,9 @@ import com.hrach.financeapp.data.model.OverviewColorToken
 import com.hrach.financeapp.data.model.TransactionKind
 import com.hrach.financeapp.data.model.TransactionOverview
 
-class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository {
+class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutationsRepository, TransactionMutationsRepository {
     private var nextAccountId = 4
+    private var nextTransactionId = 6
     private val accounts = mutableListOf(
         AccountOverview(
             id = 1,
@@ -47,6 +48,73 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
             colorToken = OverviewColorToken.Primary
         )
     )
+    private val transactions = mutableListOf(
+        TransactionOverview(
+            id = 1,
+            groupId = 1,
+            accountId = 1,
+            category = "Зарплата",
+            comment = "Основная карта",
+            amount = 150_000.0,
+            transactionDate = "2026-04-23",
+            amountLabel = "+150 000 ₽",
+            dateLabel = "23.04",
+            kind = TransactionKind.Income,
+            colorToken = OverviewColorToken.Income
+        ),
+        TransactionOverview(
+            id = 2,
+            groupId = 1,
+            accountId = 1,
+            category = "Продукты",
+            comment = "Семья",
+            amount = 8_420.0,
+            transactionDate = "2026-04-22",
+            amountLabel = "-8 420 ₽",
+            dateLabel = "22.04",
+            kind = TransactionKind.Expense,
+            colorToken = OverviewColorToken.Expense
+        ),
+        TransactionOverview(
+            id = 3,
+            groupId = 1,
+            accountId = 1,
+            category = "Такси",
+            comment = "Транспорт",
+            amount = 1_150.0,
+            transactionDate = "2026-04-21",
+            amountLabel = "-1 150 ₽",
+            dateLabel = "21.04",
+            kind = TransactionKind.Expense,
+            colorToken = OverviewColorToken.Secondary
+        ),
+        TransactionOverview(
+            id = 4,
+            groupId = 1,
+            accountId = 2,
+            category = "Подработка",
+            comment = "Наличные",
+            amount = 18_000.0,
+            transactionDate = "2026-04-20",
+            amountLabel = "+18 000 ₽",
+            dateLabel = "20.04",
+            kind = TransactionKind.Income,
+            colorToken = OverviewColorToken.Primary
+        ),
+        TransactionOverview(
+            id = 5,
+            groupId = 1,
+            accountId = 1,
+            category = "Аптека",
+            comment = "Здоровье",
+            amount = 2_340.0,
+            transactionDate = "2026-04-19",
+            amountLabel = "-2 340 ₽",
+            dateLabel = "19.04",
+            kind = TransactionKind.Expense,
+            colorToken = OverviewColorToken.Muted
+        )
+    )
 
     override suspend fun getOverview(): FinanceOverview {
         return FinanceOverview(
@@ -60,13 +128,7 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
                 subtitle = "4 счета, 2 участника группы"
             ),
             accounts = accounts.toList(),
-            transactions = listOf(
-                TransactionOverview("Зарплата", "Основная карта", "+150 000 ₽", "23.04", TransactionKind.Income, OverviewColorToken.Income),
-                TransactionOverview("Продукты", "Семья", "-8 420 ₽", "22.04", TransactionKind.Expense, OverviewColorToken.Expense),
-                TransactionOverview("Такси", "Транспорт", "-1 150 ₽", "21.04", TransactionKind.Expense, OverviewColorToken.Secondary),
-                TransactionOverview("Подработка", "Наличные", "+18 000 ₽", "20.04", TransactionKind.Income, OverviewColorToken.Primary),
-                TransactionOverview("Аптека", "Здоровье", "-2 340 ₽", "19.04", TransactionKind.Expense, OverviewColorToken.Muted)
-            ),
+            transactions = transactions.toList(),
             insights = listOf(
                 "Баланс месяца положительный: доходы выше расходов на 125 150 ₽.",
                 "Самая крупная категория расходов сейчас: семья и продукты.",
@@ -130,6 +192,80 @@ class DemoFinanceOverviewRepository : FinanceOverviewRepository, AccountMutation
     override suspend fun deleteAccount(accountId: Int) {
         accounts.removeAll { it.id == accountId }
     }
+
+    override suspend fun createTransaction(
+        groupId: Int,
+        accountId: Int,
+        createdBy: Int?,
+        type: String,
+        amount: Double,
+        currency: String,
+        categoryId: Int?,
+        transactionDate: String,
+        comment: String?
+    ) {
+        val kind = type.toDemoTransactionKind()
+        transactions.add(
+            0,
+            TransactionOverview(
+                id = nextTransactionId++,
+                groupId = groupId,
+                accountId = accountId,
+                createdBy = createdBy,
+                categoryId = categoryId,
+                category = type.toDemoTransactionTypeLabel(),
+                comment = comment?.takeIf { it.isNotBlank() }
+                    ?: accounts.firstOrNull { it.id == accountId }?.title
+                    ?: "Счет #$accountId",
+                amount = amount,
+                currency = currency,
+                transactionDate = transactionDate,
+                amountLabel = amount.toDemoTransactionMoneyLabel(currency, kind),
+                dateLabel = transactionDate.toDemoShortDateLabel(),
+                kind = kind,
+                colorToken = if (kind == TransactionKind.Income) OverviewColorToken.Income else OverviewColorToken.Expense
+            )
+        )
+    }
+
+    override suspend fun updateTransaction(
+        transactionId: Int,
+        groupId: Int,
+        accountId: Int,
+        createdBy: Int?,
+        type: String,
+        amount: Double,
+        currency: String,
+        categoryId: Int?,
+        transactionDate: String,
+        comment: String?
+    ) {
+        val index = transactions.indexOfFirst { it.id == transactionId }
+        if (index < 0) return
+
+        val kind = type.toDemoTransactionKind()
+        transactions[index] = transactions[index].copy(
+            groupId = groupId,
+            accountId = accountId,
+            createdBy = createdBy,
+            categoryId = categoryId,
+            category = type.toDemoTransactionTypeLabel(),
+            comment = comment?.takeIf { it.isNotBlank() }
+                ?: accounts.firstOrNull { it.id == accountId }?.title
+                ?: "Счет #$accountId",
+            amount = amount,
+            currency = currency,
+            transactionDate = transactionDate,
+            amountLabel = amount.toDemoTransactionMoneyLabel(currency, kind),
+            dateLabel = transactionDate.toDemoShortDateLabel(),
+            kind = kind,
+            colorToken = if (kind == TransactionKind.Income) OverviewColorToken.Income else OverviewColorToken.Expense
+        )
+    }
+
+    override suspend fun deleteTransaction(transactionId: Int) {
+        transactions.removeAll { it.id == transactionId }
+    }
 }
 
 private fun Double.toDemoMoneyLabel(currency: String = "RUB"): String {
@@ -151,4 +287,28 @@ private fun String.toDemoAccountColorToken(): OverviewColorToken = when (upperca
     "CARD", "BANK" -> OverviewColorToken.Secondary
     "CASH" -> OverviewColorToken.Muted
     else -> OverviewColorToken.Primary
+}
+
+private fun String.toDemoTransactionKind(): TransactionKind = when (uppercase()) {
+    "INCOME" -> TransactionKind.Income
+    else -> TransactionKind.Expense
+}
+
+private fun String.toDemoTransactionTypeLabel(): String = when (uppercase()) {
+    "INCOME" -> "Доход"
+    "EXPENSE" -> "Расход"
+    else -> this
+}
+
+private fun Double.toDemoTransactionMoneyLabel(currency: String, kind: TransactionKind): String {
+    val sign = if (kind == TransactionKind.Income) "+" else "-"
+    return "$sign${toDemoMoneyLabel(currency)}"
+}
+
+private fun String.toDemoShortDateLabel(): String {
+    return if (length >= 10 && this[4] == '-' && this[7] == '-') {
+        "${substring(8, 10)}.${substring(5, 7)}"
+    } else {
+        this
+    }
 }

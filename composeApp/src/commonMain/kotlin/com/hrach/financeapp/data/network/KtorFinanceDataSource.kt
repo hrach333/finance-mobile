@@ -4,11 +4,13 @@ import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.ApiListResponse
 import com.hrach.financeapp.data.dto.CategoryDto
 import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.GroupDto
 import com.hrach.financeapp.data.dto.GroupMemberDto
 import com.hrach.financeapp.data.dto.SummaryDto
 import com.hrach.financeapp.data.dto.TransactionDto
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.dto.UserDto
 import com.hrach.financeapp.data.repository.FinanceDataSource
 import io.ktor.client.HttpClient
@@ -57,15 +59,17 @@ class KtorFinanceDataSource(
             parameter("groupId", groupId)
         }.body<ApiListResponse<AccountDto>>().data
 
-    override suspend fun createAccount(request: CreateAccountRequest): AccountDto =
+    override suspend fun createAccount(request: CreateAccountRequest) {
         httpClient.post("accounts") {
             setBody(request)
-        }.body()
+        }
+    }
 
-    override suspend fun updateAccount(id: Int, request: UpdateAccountRequest): AccountDto =
+    override suspend fun updateAccount(id: Int, request: UpdateAccountRequest) {
         httpClient.put("accounts/$id") {
             setBody(request)
-        }.body()
+        }
+    }
 
     override suspend fun deleteAccount(id: Int) {
         httpClient.delete("accounts/$id")
@@ -80,6 +84,22 @@ class KtorFinanceDataSource(
         httpClient.get("transactions") {
             parameter("groupId", groupId)
         }.body<ApiListResponse<TransactionDto>>().data
+
+    override suspend fun createTransaction(request: CreateTransactionRequest) {
+        httpClient.post("transactions") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun updateTransaction(id: Int, request: UpdateTransactionRequest) {
+        httpClient.put("transactions/$id") {
+            setBody(request)
+        }
+    }
+
+    override suspend fun deleteTransaction(id: Int) {
+        httpClient.delete("transactions/$id")
+    }
 
     override suspend fun getSummary(groupId: Int, startDate: String, endDate: String): SummaryDto =
         httpClient.get("analytics/summary") {

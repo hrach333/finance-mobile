@@ -57,10 +57,18 @@ fun toFinanceOverview(
             .map { transaction ->
                 val kind = transaction.type.toTransactionKind()
                 TransactionOverview(
+                    id = transaction.id,
+                    groupId = transaction.groupId,
+                    accountId = transaction.accountId,
+                    createdBy = transaction.createdBy,
+                    categoryId = transaction.categoryId,
                     category = categoryNames[transaction.categoryId] ?: transaction.type.toTransactionTypeLabel(),
                     comment = transaction.comment?.takeIf { it.isNotBlank() }
                         ?: accountNames[transaction.accountId]
                         ?: "Счет #${transaction.accountId}",
+                    amount = transaction.amount,
+                    currency = transaction.currency,
+                    transactionDate = transaction.transactionDate,
                     amountLabel = transaction.amount.moneyLabel(transaction.currency, kind),
                     dateLabel = transaction.transactionDate.toShortDateLabel(),
                     kind = kind,

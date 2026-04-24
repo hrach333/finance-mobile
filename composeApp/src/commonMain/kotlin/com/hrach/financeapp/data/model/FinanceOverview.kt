@@ -34,8 +34,16 @@ data class AccountOverview(
 )
 
 data class TransactionOverview(
+    val id: Int? = null,
+    val groupId: Int? = null,
+    val accountId: Int? = null,
+    val createdBy: Int? = null,
+    val categoryId: Int? = null,
     val category: String,
     val comment: String,
+    val amount: Double = 0.0,
+    val currency: String = "RUB",
+    val transactionDate: String = "",
     val amountLabel: String,
     val dateLabel: String,
     val kind: TransactionKind,

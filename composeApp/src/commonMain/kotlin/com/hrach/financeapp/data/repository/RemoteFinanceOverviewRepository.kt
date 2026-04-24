@@ -1,7 +1,9 @@
 package com.hrach.financeapp.data.repository
 
 import com.hrach.financeapp.data.dto.CreateAccountRequest
+import com.hrach.financeapp.data.dto.CreateTransactionRequest
 import com.hrach.financeapp.data.dto.UpdateAccountRequest
+import com.hrach.financeapp.data.dto.UpdateTransactionRequest
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.toFinanceOverview
 
@@ -9,7 +11,7 @@ class RemoteFinanceOverviewRepository(
     private val dataSource: FinanceDataSource,
     private val periodProvider: FinancePeriodProvider,
     private val preferredGroupId: Int? = null
-) : FinanceOverviewRepository, AccountMutationsRepository {
+) : FinanceOverviewRepository, AccountMutationsRepository, TransactionMutationsRepository {
     override suspend fun getOverview(): FinanceOverview {
         val user = dataSource.me()
         val groups = dataSource.getGroups()
@@ -91,6 +93,64 @@ class RemoteFinanceOverviewRepository(
 
     override suspend fun deleteAccount(accountId: Int) {
         dataSource.deleteAccount(accountId)
+    }
+
+    override suspend fun createTransaction(
+        groupId: Int,
+        accountId: Int,
+        createdBy: Int?,
+        type: String,
+        amount: Double,
+        currency: String,
+        categoryId: Int?,
+        transactionDate: String,
+        comment: String?
+    ) {
+        dataSource.createTransaction(
+            CreateTransactionRequest(
+                groupId = groupId,
+                accountId = accountId,
+                createdBy = createdBy,
+                type = type,
+                amount = amount,
+                currency = currency,
+                categoryId = categoryId,
+                transactionDate = transactionDate,
+                comment = comment
+            )
+        )
+    }
+
+    override suspend fun updateTransaction(
+        transactionId: Int,
+        groupId: Int,
+        accountId: Int,
+        createdBy: Int?,
+        type: String,
+        amount: Double,
+        currency: String,
+        categoryId: Int?,
+        transactionDate: String,
+        comment: String?
+    ) {
+        dataSource.updateTransaction(
+            transactionId,
+            UpdateTransactionRequest(
+                groupId = groupId,
+                accountId = accountId,
+                createdBy = createdBy,
+                type = type,
+                amount = amount,
+                currency = currency,
+                categoryId = categoryId,
+                transactionDate = transactionDate,
+                comment = comment
+            )
+        )
+    }
+
+    override suspend fun deleteTransaction(transactionId: Int) {
+        dataSource.deleteTransaction(transactionId)
     }
 }
 
