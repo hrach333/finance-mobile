@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
@@ -27,9 +28,11 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,8 +44,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hrach.financeapp.data.auth.SessionStore
@@ -56,6 +61,7 @@ import com.hrach.financeapp.ui.screens.GroupMembersOverviewScreen
 import com.hrach.financeapp.ui.screens.GroupsOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
+import com.hrach.financeapp.ui.state.AuthActionResult
 import com.hrach.financeapp.ui.state.AuthResult
 import com.hrach.financeapp.ui.state.AuthSessionCoordinator
 import com.hrach.financeapp.ui.state.DashboardTab
@@ -356,12 +362,18 @@ private fun AuthScreen(
     onAuthenticated: (String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var isRegisterMode by remember { mutableStateOf(false) }
+    var authMode by remember { mutableStateOf(AuthMode.Login) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordConfirm by remember { mutableStateOf("") }
+    var resetCode by remember { mutableStateOf("") }
+    var codeRequested by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var infoMessage by remember { mutableStateOf<String?>(null) }
+    val isRegisterMode = authMode == AuthMode.Register
+    val isResetMode = authMode == AuthMode.ForgotPassword
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize().background(backgroundGradient)) {
@@ -385,7 +397,11 @@ private fun AuthScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = if (isRegisterMode) "Регистрация" else "Вход",
+                        text = when (authMode) {
+                            AuthMode.Login -> "Вход"
+                            AuthMode.Register -> "Регистрация"
+                            AuthMode.ForgotPassword -> "Восстановление пароля"
+                        },
                         style = MaterialTheme.typography.h5,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF23212B)
@@ -414,17 +430,43 @@ private fun AuthScreen(
                         singleLine = true
                     )
 
-                    TextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Пароль") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (isResetMode && codeRequested) {
+                        TextField(
+                            value = resetCode,
+                            onValueChange = { resetCode = it },
+                            label = { Text("Код из письма") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
+                    if (!isResetMode || codeRequested) {
+                        TextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text(if (isResetMode) "Новый пароль" else "Пароль") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
+                    if (isResetMode && codeRequested) {
+                        TextField(
+                            value = passwordConfirm,
+                            onValueChange = { passwordConfirm = it },
+                            label = { Text("Повторите пароль") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
 
                     error?.let {
                         Text(text = it, color = Color(0xFFE85B6A), style = MaterialTheme.typography.body2)
+                    }
+                    infoMessage?.let {
+                        Text(text = it, color = Color(0xFF16A34A), style = MaterialTheme.typography.body2)
                     }
 
                     Button(
@@ -432,46 +474,132 @@ private fun AuthScreen(
                             coroutineScope.launch {
                                 isLoading = true
                                 error = null
-                                when (val result =
-                                    if (isRegisterMode) {
-                                        authSession.register(name = name, email = email, password = password)
+                                infoMessage = null
+                                if (isResetMode) {
+                                    if (!codeRequested) {
+                                        when (val result = authSession.forgotPassword(email)) {
+                                            is AuthActionResult.Failure -> error = result.message
+                                            is AuthActionResult.Success -> {
+                                                codeRequested = true
+                                                infoMessage = result.message
+                                            }
+                                        }
                                     } else {
-                                        authSession.login(email = email, password = password)
+                                        val passwordValidationError = validatePassword(password)
+                                        when {
+                                            passwordValidationError != null -> error = passwordValidationError
+                                            password != passwordConfirm -> error = "Пароли не совпадают"
+                                            else -> when (val result = authSession.resetPassword(email, resetCode, password)) {
+                                                is AuthActionResult.Failure -> error = result.message
+                                                is AuthActionResult.Success -> {
+                                                    authMode = AuthMode.Login
+                                                    password = ""
+                                                    passwordConfirm = ""
+                                                    resetCode = ""
+                                                    codeRequested = false
+                                                    infoMessage = result.message
+                                                }
+                                            }
+                                        }
                                     }
-                                ) {
-                                    is AuthResult.Failure -> {
-                                        error = result.message
-                                    }
-                                    is AuthResult.Success -> {
-                                        onAuthenticated(result.token)
+                                } else {
+                                    val passwordValidationError = if (isRegisterMode) validatePassword(password) else null
+                                    if (passwordValidationError != null) {
+                                        error = passwordValidationError
+                                    } else {
+                                        when (val result =
+                                            if (isRegisterMode) {
+                                                authSession.register(name = name, email = email, password = password)
+                                            } else {
+                                                authSession.login(email = email, password = password)
+                                            }
+                                        ) {
+                                            is AuthResult.Failure -> {
+                                                error = result.message
+                                            }
+                                            is AuthResult.Success -> {
+                                                onAuthenticated(result.token)
+                                            }
+                                        }
                                     }
                                 }
                                 isLoading = false
                             }
                         },
-                        enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || name.isNotBlank()),
+                        enabled = !isLoading && email.isNotBlank() &&
+                            when (authMode) {
+                                AuthMode.Login -> password.isNotBlank()
+                                AuthMode.Register -> name.isNotBlank() && password.isNotBlank()
+                                AuthMode.ForgotPassword -> !codeRequested ||
+                                    (resetCode.isNotBlank() && password.isNotBlank() && passwordConfirm.isNotBlank())
+                            },
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (isLoading) "Подождите..." else if (isRegisterMode) "Создать аккаунт" else "Войти")
+                        Text(
+                            if (isLoading) {
+                                "Подождите..."
+                            } else {
+                                when (authMode) {
+                                    AuthMode.Login -> "Войти"
+                                    AuthMode.Register -> "Создать аккаунт"
+                                    AuthMode.ForgotPassword -> if (codeRequested) "Изменить пароль" else "Получить код"
+                                }
+                            }
+                        )
                     }
 
-                    Button(
+                    if (!isResetMode) {
+                        Button(
+                            onClick = {
+                                authMode = if (isRegisterMode) AuthMode.Login else AuthMode.Register
+                                error = null
+                                infoMessage = null
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
+                            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (isRegisterMode) "У меня уже есть аккаунт" else "Создать новый аккаунт")
+                        }
+                    }
+
+                    TextButton(
                         onClick = {
-                            isRegisterMode = !isRegisterMode
+                            authMode = if (isResetMode) AuthMode.Login else AuthMode.ForgotPassword
                             error = null
+                            infoMessage = null
+                            codeRequested = false
+                            resetCode = ""
+                            password = ""
+                            passwordConfirm = ""
                         },
-                        shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
-                        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (isRegisterMode) "У меня уже есть аккаунт" else "Создать новый аккаунт")
+                        Text(if (isResetMode) "Вернуться к входу" else "Забыли пароль?")
                     }
                 }
             }
         }
+    }
+}
+
+private enum class AuthMode {
+    Login,
+    Register,
+    ForgotPassword
+}
+
+private fun validatePassword(password: String): String? {
+    return when {
+        password.length < 8 -> "Пароль должен быть не менее 8 символов"
+        password.none { it.isUpperCase() } -> "Пароль должен содержать хотя бы одну заглавную букву"
+        password.none { it.isLowerCase() } -> "Пароль должен содержать хотя бы одну строчную букву"
+        password.none { it.isDigit() } -> "Пароль должен содержать хотя бы одну цифру"
+        password.none { !it.isLetterOrDigit() } -> "Пароль должен содержать хотя бы один специальный символ"
+        else -> null
     }
 }
 
@@ -508,15 +636,24 @@ private fun ResponsiveShell(
         val useRail = maxWidth >= 760.dp
 
         if (useRail) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                DesktopRail(selectedTab = selectedTab, onTabSelected = onTabSelected)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 28.dp, vertical = 24.dp)
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth(0.72f)) {
-                        content()
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = density.density,
+                    fontScale = density.fontScale * 1.12f
+                )
+            ) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    DesktopRail(selectedTab = selectedTab, onTabSelected = onTabSelected)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 36.dp, vertical = 30.dp),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().widthIn(max = 1180.dp)) {
+                            content()
+                        }
                     }
                 }
             }

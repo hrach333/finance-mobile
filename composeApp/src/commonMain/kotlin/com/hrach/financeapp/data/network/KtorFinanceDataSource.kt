@@ -23,6 +23,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
@@ -39,6 +40,10 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 
@@ -195,13 +200,18 @@ fun createFinanceHttpClient(
 
         HttpResponseValidator {
             handleResponseExceptionWithRequest { cause, _ ->
-                throw FinanceNetworkException(cause.message ?: "Ошибка запроса к API", cause)
+                val apiMessage = if (cause is ResponseException) {
+                    extractApiErrorMessage(cause.response.bodyAsText())
+                } else {
+                    null
+                }
+                throw FinanceNetworkException(apiMessage ?: cause.message ?: "Ошибка запроса к API", cause)
             }
         }
     }
 }
 
-private val financeJson = Json {
+internal val financeJson = Json {
     ignoreUnknownKeys = true
     isLenient = true
     explicitNulls = false
@@ -220,6 +230,28 @@ private fun decodeGroupDtoOrNull(payload: String): GroupDto? {
         val group = root.jsonObject["data"] ?: root.jsonObject["group"] ?: root
         financeJson.decodeFromJsonElement<GroupDto>(group)
     }.getOrNull()
+}
+
+private fun extractApiErrorMessage(payload: String): String? {
+    if (payload.isBlank()) return null
+    return runCatching {
+        val root = financeJson.parseToJsonElement(payload)
+        val message = root.jsonObject["message"]?.asTextOrNull()
+        val errors = root.jsonObject["errors"]?.flattenErrorText()
+        listOfNotNull(message, errors).joinToString("\n").takeIf { it.isNotBlank() }
+    }.getOrNull()
+}
+
+private fun JsonElement.flattenErrorText(): String? {
+    return when (this) {
+        is JsonPrimitive -> content.takeIf { it.isNotBlank() }
+        is JsonArray -> mapNotNull { it.flattenErrorText() }.joinToString("\n").takeIf { it.isNotBlank() }
+        is JsonObject -> values.mapNotNull { it.flattenErrorText() }.joinToString("\n").takeIf { it.isNotBlank() }
+    }
+}
+
+private fun JsonElement.asTextOrNull(): String? {
+    return (this as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
 }
 
 class FinanceNetworkException(message: String, cause: Throwable? = null) : Exception(message, cause)

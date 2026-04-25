@@ -1,7 +1,10 @@
 package com.hrach.financeapp.mvp
 
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.hrach.financeapp.data.auth.DesktopSessionStore
 import com.hrach.financeapp.data.network.KtorAuthRepository
 import com.hrach.financeapp.data.network.KtorFinanceDataSource
@@ -13,6 +16,7 @@ fun main() = application {
     val authRepository = KtorAuthRepository().also { repository ->
         closeHandlers += { repository.close() }
     }
+    val windowState = rememberWindowState(size = DpSize(width = 1280.dp, height = 860.dp))
 
     Window(
         onCloseRequest = {
@@ -21,6 +25,7 @@ fun main() = application {
             }
             exitApplication()
         },
+        state = windowState,
         title = "SmartBudget MVP"
     ) {
         App(
