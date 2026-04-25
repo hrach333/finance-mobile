@@ -155,20 +155,20 @@ private fun CategoryOverviewCard(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundIconButton(
-                        icon = FinanceIcon.Tag,
+                        icon = category.iconKey.toCategoryIcon(category.type),
                         contentDescription = category.name,
                         onClick = {},
                         enabled = false,
                         size = 44.dp,
-                        background = category.type.categoryTint().copy(alpha = 0.16f),
-                        contentColor = category.type.categoryTint()
+                        background = category.iconKey.categoryColor(category.type).copy(alpha = 0.18f),
+                        contentColor = category.iconKey.categoryColor(category.type)
                     )
                     Column {
                         Text(category.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
                         Text(category.type.toCategoryTypeLabel(), color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
                     }
                 }
-                Text(category.iconKey ?: defaultIconForType(category.type), color = category.type.categoryTint(), fontWeight = FontWeight.Bold)
+                Box(modifier = Modifier.size(1.dp))
             }
             Divider(color = Color.White.copy(alpha = 0.7f))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -244,11 +244,12 @@ private fun CategoryOverviewEditorDialog(
                 }
 
                 Text("Иконка", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
-                iconOptionsForType(type).chunked(3).forEach { row ->
+                iconOptionsForType(type).chunked(4).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { option ->
                             CategoryIconButton(
                                 value = option,
+                                type = type,
                                 selectedValue = iconKey,
                                 onSelected = { iconKey = it }
                             )
@@ -289,21 +290,26 @@ private fun CategoryTypeButton(
 @Composable
 private fun CategoryIconButton(
     value: String,
+    type: String,
     selectedValue: String,
     onSelected: (String) -> Unit
 ) {
     val selected = value == selectedValue
     Button(
         onClick = { onSelected(value) },
-        modifier = Modifier.width(92.dp),
-        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.size(52.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = ButtonDefaults.buttonColors(
-            backgroundColor = if (selected) Color(0xFF5E4B8B) else Color(0xFFF1E7FB),
-            contentColor = if (selected) Color.White else Color(0xFF5E4B8B)
+            backgroundColor = if (selected) value.categoryColor(type) else value.categoryColor(type).copy(alpha = 0.16f),
+            contentColor = if (selected) Color.White else value.categoryColor(type)
         ),
         elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
     ) {
-        Text(value, style = MaterialTheme.typography.caption)
+        FinanceIcon(
+            icon = value.toCategoryIcon(type),
+            contentDescription = value,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
 
@@ -316,8 +322,36 @@ private fun defaultIconForType(type: String): String = if (type == "INCOME") "sa
 
 private fun iconOptionsForType(type: String): List<String> {
     return if (type == "INCOME") {
-        listOf("salary", "work", "gift", "bonus", "cash")
+        listOf("salary", "work", "gift", "bonus", "cash", "other")
     } else {
-        listOf("shopping", "transport", "health", "home", "food", "other")
+        listOf("shopping", "transport", "health", "home", "food", "sport", "gift", "other")
     }
+}
+
+private fun String?.toCategoryIcon(type: String): FinanceIcon = when (this?.lowercase()) {
+    "shopping" -> FinanceIcon.Shopping
+    "transport" -> FinanceIcon.Transport
+    "health", "medicine", "medical" -> FinanceIcon.Health
+    "home" -> FinanceIcon.Home
+    "food", "restaurant" -> FinanceIcon.Food
+    "sport", "sports" -> FinanceIcon.Sport
+    "salary", "cash", "bonus" -> FinanceIcon.Cash
+    "work" -> FinanceIcon.Work
+    "gift" -> FinanceIcon.Gift
+    "other" -> FinanceIcon.Other
+    else -> if (type == "INCOME") FinanceIcon.Cash else FinanceIcon.Tag
+}
+
+private fun String?.categoryColor(type: String): Color = when (this?.lowercase()) {
+    "shopping" -> Color(0xFF8B5CF6)
+    "transport" -> Color(0xFF2563EB)
+    "health", "medicine", "medical" -> Color(0xFFE11D48)
+    "home" -> Color(0xFF0F766E)
+    "food", "restaurant" -> Color(0xFFF97316)
+    "sport", "sports" -> Color(0xFF16A34A)
+    "salary", "cash" -> Color(0xFF059669)
+    "work" -> Color(0xFF4F46E5)
+    "gift", "bonus" -> Color(0xFFDB2777)
+    "other" -> Color(0xFF64748B)
+    else -> type.categoryTint()
 }

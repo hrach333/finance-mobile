@@ -18,17 +18,28 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -69,7 +80,16 @@ enum class FinanceIcon {
     Filter,
     ChevronDown,
     Back,
-    Check
+    Check,
+    Shopping,
+    Transport,
+    Health,
+    Food,
+    Sport,
+    Work,
+    Gift,
+    Cash,
+    Other
 }
 
 @Composable
@@ -152,4 +172,13 @@ private fun FinanceIcon.imageVector(): ImageVector = when (this) {
     FinanceIcon.ChevronDown -> Icons.Filled.ExpandMore
     FinanceIcon.Back -> Icons.AutoMirrored.Filled.ArrowBack
     FinanceIcon.Check -> Icons.Filled.Check
+    FinanceIcon.Shopping -> Icons.Filled.ShoppingCart
+    FinanceIcon.Transport -> Icons.Filled.DirectionsBus
+    FinanceIcon.Health -> Icons.Filled.MedicalServices
+    FinanceIcon.Food -> Icons.Filled.Restaurant
+    FinanceIcon.Sport -> Icons.Filled.SportsSoccer
+    FinanceIcon.Work -> Icons.Filled.Work
+    FinanceIcon.Gift -> Icons.Filled.CardGiftcard
+    FinanceIcon.Cash -> Icons.Filled.AttachMoney
+    FinanceIcon.Other -> Icons.Filled.MoreHoriz
 }

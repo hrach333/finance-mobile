@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -420,43 +421,54 @@ fun TransactionOverviewCard(
         backgroundColor = Color(0xFFF4EDF7).copy(alpha = 0.96f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier.size(42.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                FinanceIcon(
-                    icon = if (transaction.kind == TransactionKind.Income) FinanceIcon.Check else FinanceIcon.Tag,
-                    contentDescription = null,
-                    tint = tint,
-                    modifier = Modifier.size(22.dp)
+                Box(
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    FinanceIcon(
+                        icon = if (transaction.kind == TransactionKind.Income) FinanceIcon.Check else FinanceIcon.Tag,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(transaction.category, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                    Text(transaction.comment, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                }
+                Text(
+                    transaction.dateLabel,
+                    color = Color(0xFF6B6579),
+                    style = MaterialTheme.typography.body2,
+                    modifier = Modifier.widthIn(min = 74.dp)
+                )
+                Text(
+                    transaction.amountLabel,
+                    color = if (transaction.kind == TransactionKind.Income) Color(0xFF16A34A) else Color(0xFFDC2626),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.widthIn(min = 92.dp)
                 )
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(transaction.category, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                Text(transaction.comment, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
-            }
-            Text(transaction.dateLabel, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
-            Text(
-                transaction.amountLabel,
-                color = if (transaction.kind == TransactionKind.Income) Color(0xFF16A34A) else Color(0xFFDC2626),
-                fontWeight = FontWeight.Bold
-            )
-        }
-        if (onEdit != null || onDelete != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 68.dp, end = 14.dp, bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-            ) {
-                onEdit?.let {
-                    RoundIconButton(FinanceIcon.Edit, "Изменить операцию", it, size = 36.dp)
-                }
-                onDelete?.let {
-                    RoundIconButton(FinanceIcon.Delete, "Удалить операцию", it, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
+            if (onEdit != null || onDelete != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    onEdit?.let {
+                        RoundIconButton(FinanceIcon.Edit, "Изменить операцию", it, size = 36.dp)
+                    }
+                    onDelete?.let {
+                        RoundIconButton(FinanceIcon.Delete, "Удалить операцию", it, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
+                    }
                 }
             }
         }
