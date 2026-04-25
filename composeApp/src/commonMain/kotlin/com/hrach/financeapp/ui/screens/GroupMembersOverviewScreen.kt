@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -111,25 +112,33 @@ private fun GroupMemberCard(
     onToggleRole: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(member.userName ?: member.userEmail ?: "Участник #${member.id}", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-            Text(member.userEmail ?: "Email не получен", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
-            Text("Роль: ${member.role}", color = Color(0xFF5E4B8B), fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundIconButton(
+                    icon = FinanceIcon.Group,
+                    contentDescription = "Участник",
+                    onClick = {},
+                    enabled = false,
+                    size = 44.dp,
+                    background = AppLilac,
+                    contentColor = AppPurple
+                )
+                Column {
+                    Text(member.userName ?: member.userEmail ?: "Участник #${member.id}", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                    Text(member.userEmail ?: "Email не получен", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                    Text("Роль: ${member.role}", color = Color(0xFF5E4B8B), fontWeight = FontWeight.SemiBold)
+                }
+            }
             Divider(color = Color.White.copy(alpha = 0.7f))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onToggleRole) {
-                    Text(if (member.role == "admin") "Сделать member" else "Сделать admin")
-                }
-                TextButton(onClick = onDelete) {
-                    Text("Удалить", color = Color(0xFFE85B6A))
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+            ) {
+                RoundIconButton(FinanceIcon.Settings, "Изменить роль", onToggleRole, size = 36.dp)
+                RoundIconButton(FinanceIcon.Delete, "Удалить участника", onDelete, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
             }
         }
     }

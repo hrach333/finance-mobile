@@ -96,9 +96,12 @@ fun TransactionsOverviewScreen(
         item {
             Button(
                 onClick = { showCreateDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
+                shape = RoundedCornerShape(22.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White),
+                elevation = ButtonDefaults.elevation(defaultElevation = 8.dp)
             ) {
+                FinanceIcon(FinanceIcon.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
+                Box(Modifier.width(8.dp))
                 Text("Добавить операцию")
             }
         }
@@ -245,11 +248,7 @@ private fun TransactionFilters(
     onPickDateTo: () -> Unit,
     onClear: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -303,9 +302,7 @@ private fun TransactionFilters(
                 )
             }
 
-            TextButton(onClick = onClear) {
-                Text("Сбросить фильтры")
-            }
+            RoundIconButton(FinanceIcon.Filter, "Сбросить фильтры", onClear, size = 38.dp)
         }
     }
 }
@@ -361,11 +358,7 @@ private fun DateFilterField(
 
 @Composable
 private fun EmptyTransactionsCard() {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 3.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
@@ -423,11 +416,8 @@ fun TransactionOverviewCard(
 ) {
     val tint = transaction.colorToken.toScreenColor()
 
-    Card(
-        backgroundColor = Color(0xFFF4EDF7),
-        elevation = 3.dp,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.65f)),
-        shape = RoundedCornerShape(20.dp),
+    GlassCard(
+        backgroundColor = Color(0xFFF4EDF7).copy(alpha = 0.96f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -439,7 +429,12 @@ fun TransactionOverviewCard(
                 modifier = Modifier.size(42.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(transaction.category.take(1), color = tint, fontWeight = FontWeight.Bold)
+                FinanceIcon(
+                    icon = if (transaction.kind == TransactionKind.Income) FinanceIcon.Check else FinanceIcon.Tag,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(22.dp)
+                )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(transaction.category, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
@@ -455,17 +450,13 @@ fun TransactionOverviewCard(
         if (onEdit != null || onDelete != null) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 68.dp, end = 14.dp, bottom = 10.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
                 onEdit?.let {
-                    TextButton(onClick = it) {
-                        Text("Изменить")
-                    }
+                    RoundIconButton(FinanceIcon.Edit, "Изменить операцию", it, size = 36.dp)
                 }
                 onDelete?.let {
-                    TextButton(onClick = it) {
-                        Text("Удалить", color = Color(0xFFE85B6A))
-                    }
+                    RoundIconButton(FinanceIcon.Delete, "Удалить операцию", it, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
                 }
             }
         }

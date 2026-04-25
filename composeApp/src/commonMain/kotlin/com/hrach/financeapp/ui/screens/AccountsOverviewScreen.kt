@@ -2,13 +2,16 @@ package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -51,9 +54,12 @@ fun AccountsOverviewScreen(
         item {
             Button(
                 onClick = { showCreateDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
+                shape = RoundedCornerShape(22.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White),
+                elevation = ButtonDefaults.elevation(defaultElevation = 8.dp)
             ) {
+                FinanceIcon(FinanceIcon.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
+                Box(Modifier.width(8.dp))
                 Text("Добавить счет")
             }
         }
@@ -122,16 +128,28 @@ private fun AccountOverviewCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(account.title, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(42.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RoundIconButton(
+                            icon = FinanceIcon.Wallet,
+                            contentDescription = account.title,
+                            onClick = {},
+                            enabled = false,
+                            size = 42.dp,
+                            background = account.colorToken.toScreenColor().copy(alpha = 0.16f),
+                            contentColor = account.colorToken.toScreenColor()
+                        )
+                    }
+                    Text(account.title, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                }
                 Text(account.balanceLabel, color = account.colorToken.toScreenColor(), fontWeight = FontWeight.Bold)
             }
             Divider(color = Color.White.copy(alpha = 0.7f))
@@ -142,12 +160,8 @@ private fun AccountOverviewCard(
             ) {
                 Text(account.subtitle, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onEdit) {
-                        Text("Изменить")
-                    }
-                    TextButton(onClick = onDelete) {
-                        Text("Удалить", color = Color(0xFFE85B6A))
-                    }
+                    RoundIconButton(FinanceIcon.Edit, "Изменить счет", onEdit, size = 36.dp)
+                    RoundIconButton(FinanceIcon.Delete, "Удалить счет", onDelete, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
                 }
             }
         }

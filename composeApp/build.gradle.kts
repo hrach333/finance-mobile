@@ -40,6 +40,7 @@ kotlin {
                 implementation("org.jetbrains.compose.runtime:runtime:$composeMultiplatformVersion")
                 implementation("org.jetbrains.compose.foundation:foundation:$composeMultiplatformVersion")
                 implementation("org.jetbrains.compose.material:material:$composeMultiplatformVersion")
+                implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
                 implementation("org.jetbrains.compose.ui:ui:$composeMultiplatformVersion")
                 implementation("org.jetbrains.compose.components:components-resources:$composeMultiplatformVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")

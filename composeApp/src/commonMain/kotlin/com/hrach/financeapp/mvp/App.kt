@@ -54,12 +54,21 @@ import com.hrach.financeapp.data.auth.SessionStore
 import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import com.hrach.financeapp.ui.screens.AppBackgroundGradient
+import com.hrach.financeapp.ui.screens.AppBlue
+import com.hrach.financeapp.ui.screens.AppCard
+import com.hrach.financeapp.ui.screens.AppInk
+import com.hrach.financeapp.ui.screens.AppLilac
+import com.hrach.financeapp.ui.screens.AppMuted
+import com.hrach.financeapp.ui.screens.AppPurple
 import com.hrach.financeapp.ui.screens.AccountsOverviewScreen
 import com.hrach.financeapp.ui.screens.AnalyticsOverviewScreen
 import com.hrach.financeapp.ui.screens.CategoriesOverviewScreen
+import com.hrach.financeapp.ui.screens.FinanceIcon
 import com.hrach.financeapp.ui.screens.GroupMembersOverviewScreen
 import com.hrach.financeapp.ui.screens.GroupsOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
+import com.hrach.financeapp.ui.screens.RoundIconButton
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import com.hrach.financeapp.ui.state.AuthActionResult
 import com.hrach.financeapp.ui.state.AuthResult
@@ -70,9 +79,7 @@ import com.hrach.financeapp.ui.state.FinanceDashboardEvent
 import com.hrach.financeapp.ui.state.FinanceDashboardState
 import kotlinx.coroutines.launch
 
-private val backgroundGradient = Brush.verticalGradient(
-    colors = listOf(Color(0xFFCCCFDF), Color(0xFFEFD6EF), Color(0xFFABA7CE))
-)
+private val backgroundGradient = AppBackgroundGradient
 
 
 @Composable
@@ -661,16 +668,22 @@ private fun ResponsiveShell(
             Scaffold(
                 backgroundColor = Color.Transparent,
                 bottomBar = {
-                    BottomNavigation(backgroundColor = Color(0xFFF9F6FC), elevation = 10.dp) {
-                        DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
-                            BottomNavigationItem(
-                                selected = selectedTab == tab,
-                                onClick = { onTabSelected(tab) },
-                                icon = { NavigationGlyph(tab, selectedTab == tab) },
-                                label = { Text(tab.title, fontSize = 11.sp) },
-                                selectedContentColor = Color(0xFF5E4B8B),
-                                unselectedContentColor = Color(0xFF6B6579)
-                            )
+                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        BottomNavigation(
+                            backgroundColor = AppCard.copy(alpha = 0.94f),
+                            elevation = 16.dp,
+                            modifier = Modifier.clip(RoundedCornerShape(28.dp))
+                        ) {
+                            DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
+                                BottomNavigationItem(
+                                    selected = selectedTab == tab,
+                                    onClick = { onTabSelected(tab) },
+                                    icon = { NavigationGlyph(tab, selectedTab == tab, size = 38.dp) },
+                                    label = { Text(tab.title, fontSize = 10.sp, maxLines = 1) },
+                                    selectedContentColor = AppPurple,
+                                    unselectedContentColor = AppMuted
+                                )
+                            }
                         }
                     }
                 }
@@ -692,9 +705,9 @@ private fun ResponsiveShell(
 private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab) -> Unit) {
     Column(
         modifier = Modifier
-            .width(206.dp)
+            .width(216.dp)
             .fillMaxHeight()
-            .background(Color(0xFFF9F6FC).copy(alpha = 0.78f))
+            .background(AppCard.copy(alpha = 0.72f))
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -702,11 +715,11 @@ private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab)
             text = "SmartBudget",
             style = MaterialTheme.typography.h5,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF23212B)
+            color = AppInk
         )
         Text(
             text = "KMP preview",
-            color = Color(0xFF6B6579),
+            color = AppMuted,
             style = MaterialTheme.typography.body2
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -718,38 +731,48 @@ private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab)
 
 @Composable
 private fun RailItem(tab: DashboardTab, selected: Boolean, onClick: () -> Unit) {
-    val background = if (selected) Color(0xFFF1E7FB) else Color.Transparent
-    val textColor = if (selected) Color(0xFF5E4B8B) else Color(0xFF4B4760)
+    val background = if (selected) Color.White.copy(alpha = 0.78f) else Color.Transparent
+    val textColor = if (selected) AppPurple else Color(0xFF4B4760)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        NavigationGlyph(tab = tab, selected = selected)
+        NavigationGlyph(tab = tab, selected = selected, size = 42.dp)
         Text(tab.title, color = textColor, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
-private fun NavigationGlyph(tab: DashboardTab, selected: Boolean) {
-    val background = if (selected) Color(0xFF5E4B8B) else Color(0xFFE8E1F0)
-    val content = if (selected) Color.White else Color(0xFF6B6579)
+private fun NavigationGlyph(tab: DashboardTab, selected: Boolean, size: androidx.compose.ui.unit.Dp = 34.dp) {
+    val background = if (selected) AppPurple else AppLilac
+    val content = if (selected) Color.White else AppMuted
 
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(size)
             .clip(CircleShape)
             .background(background),
         contentAlignment = Alignment.Center
     ) {
-        Text(tab.glyph, color = content, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        FinanceIcon(tab.icon(), contentDescription = tab.title, tint = content)
     }
+}
+
+private fun DashboardTab.icon(): FinanceIcon = when (this) {
+    DashboardTab.Home -> FinanceIcon.Home
+    DashboardTab.Transactions -> FinanceIcon.List
+    DashboardTab.Accounts -> FinanceIcon.Wallet
+    DashboardTab.Groups -> FinanceIcon.Settings
+    DashboardTab.Categories -> FinanceIcon.Tag
+    DashboardTab.Members -> FinanceIcon.Group
+    DashboardTab.Analytics -> FinanceIcon.Pie
 }
 
 @Composable

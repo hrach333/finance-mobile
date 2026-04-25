@@ -122,11 +122,7 @@ private fun GroupOverviewCard(
     onEdit: () -> Unit
 ) {
     val accent = if (selected) Color(0xFF16A34A) else Color(0xFF5E4B8B)
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -151,13 +147,20 @@ private fun GroupOverviewCard(
                 )
             }
             Divider(color = Color.White.copy(alpha = 0.7f))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onEdit) {
-                    Text("Изменить")
-                }
-                TextButton(onClick = onSelect, enabled = !selected) {
-                    Text("Выбрать")
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+            ) {
+                RoundIconButton(FinanceIcon.Edit, "Изменить группу", onEdit, size = 36.dp)
+                RoundIconButton(
+                    FinanceIcon.Check,
+                    "Выбрать группу",
+                    onSelect,
+                    size = 36.dp,
+                    background = if (selected) AppGreen.copy(alpha = 0.16f) else AppLilac,
+                    contentColor = if (selected) AppGreen else AppPurple,
+                    enabled = !selected
+                )
             }
         }
     }

@@ -2,10 +2,12 @@ package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,9 +54,12 @@ fun CategoriesOverviewScreen(
         item {
             Button(
                 onClick = { showCreateDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
+                shape = RoundedCornerShape(22.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White),
+                elevation = ButtonDefaults.elevation(defaultElevation = 8.dp)
             ) {
+                FinanceIcon(FinanceIcon.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
+                Box(Modifier.width(8.dp))
                 Text("Добавить категорию")
             }
         }
@@ -139,11 +144,7 @@ private fun CategoryOverviewCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        backgroundColor = Color(0xFFF9F6FC),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-        elevation = 4.dp,
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -152,24 +153,35 @@ private fun CategoryOverviewCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    Text(category.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                    Text(category.type.toCategoryTypeLabel(), color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundIconButton(
+                        icon = FinanceIcon.Tag,
+                        contentDescription = category.name,
+                        onClick = {},
+                        enabled = false,
+                        size = 44.dp,
+                        background = category.type.categoryTint().copy(alpha = 0.16f),
+                        contentColor = category.type.categoryTint()
+                    )
+                    Column {
+                        Text(category.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                        Text(category.type.toCategoryTypeLabel(), color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                    }
                 }
-                Text(category.iconKey ?: defaultIconForType(category.type), color = Color(0xFF5E4B8B), fontWeight = FontWeight.Bold)
+                Text(category.iconKey ?: defaultIconForType(category.type), color = category.type.categoryTint(), fontWeight = FontWeight.Bold)
             }
             Divider(color = Color.White.copy(alpha = 0.7f))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onEdit) {
-                    Text("Изменить")
-                }
-                TextButton(onClick = onDelete) {
-                    Text("Удалить", color = Color(0xFFE85B6A))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RoundIconButton(FinanceIcon.Edit, "Изменить категорию", onEdit, size = 36.dp)
+                    RoundIconButton(FinanceIcon.Delete, "Удалить категорию", onDelete, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
                 }
             }
         }
     }
 }
+
+private fun String.categoryTint(): Color = if (this == "INCOME") AppGreen else AppRed
 
 @Composable
 private fun CategoryOverviewEditorDialog(
