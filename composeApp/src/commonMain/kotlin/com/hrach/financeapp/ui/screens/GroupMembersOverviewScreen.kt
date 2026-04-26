@@ -47,61 +47,82 @@ fun GroupMembersOverviewScreen(
             ScreenHeader(title = "Участники", subtitle = overview.activeGroupName)
         }
 
-        item {
-            Card(
-                shape = RoundedCornerShape(22.dp),
-                backgroundColor = Color(0xFFF9F6FC),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-                elevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextField(
-                        value = email,
-                        onValueChange = {
-                            email = it
-                            error = null
-                        },
-                        label = { Text("Email пользователя") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RoleButton("member", role, "member") { role = it }
-                        RoleButton("admin", role, "admin") { role = it }
-                    }
-                    Button(
-                        onClick = {
-                            if (email.isBlank() || !email.contains("@")) {
-                                error = "Введите email"
-                            } else {
-                                onAddMember(email.trim(), role)
-                                email = ""
-                                role = "member"
-                            }
-                        },
-                        shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Добавить участника")
-                    }
-                    error?.let {
-                        Text(text = it, color = Color(0xFFE85B6A), style = MaterialTheme.typography.body2)
+        if (overview.isOfflineMode) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    backgroundColor = Color(0xFFF9F6FC),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                    elevation = 4.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Совместный бюджет начинается с аккаунта", fontWeight = FontWeight.Bold, color = Color(0xFF2F2B3A))
+                        Text(
+                            "Сейчас бюджет хранится только на этом устройстве. Зарегистрируйтесь, чтобы приглашать близких, вести общий бюджет вместе и не потерять данные при смене телефона.",
+                            color = Color(0xFF6B6579),
+                            style = MaterialTheme.typography.body2
+                        )
                     }
                 }
             }
-        }
+        } else {
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    backgroundColor = Color(0xFFF9F6FC),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                    elevation = 4.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TextField(
+                            value = email,
+                            onValueChange = {
+                                email = it
+                                error = null
+                            },
+                            label = { Text("Email пользователя") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RoleButton("member", role, "member") { role = it }
+                            RoleButton("admin", role, "admin") { role = it }
+                        }
+                        Button(
+                            onClick = {
+                                if (email.isBlank() || !email.contains("@")) {
+                                    error = "Введите email"
+                                } else {
+                                    onAddMember(email.trim(), role)
+                                    email = ""
+                                    role = "member"
+                                }
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Добавить участника")
+                        }
+                        error?.let {
+                            Text(text = it, color = Color(0xFFE85B6A), style = MaterialTheme.typography.body2)
+                        }
+                    }
+                }
+            }
 
-        items(overview.members) { member ->
-            GroupMemberCard(
-                member = member,
-                onToggleRole = {
-                    val newRole = if (member.role == "admin") "member" else "admin"
-                    onUpdateMemberRole(member, newRole)
-                },
-                onDelete = { onDeleteMember(member) }
-            )
+            items(overview.members) { member ->
+                GroupMemberCard(
+                    member = member,
+                    onToggleRole = {
+                        val newRole = if (member.role == "admin") "member" else "admin"
+                        onUpdateMemberRole(member, newRole)
+                    },
+                    onDelete = { onDeleteMember(member) }
+                )
+            }
         }
     }
 }

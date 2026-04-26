@@ -269,8 +269,9 @@ class DemoFinanceOverviewRepository :
             type = type,
             iconKey = iconKey
         )
-        transactions.replaceAll { transaction ->
-            if (transaction.categoryId == categoryId) {
+        transactions.indices.forEach { index ->
+            val transaction = transactions[index]
+            transactions[index] = if (transaction.categoryId == categoryId) {
                 val kind = type.toDemoTransactionKind()
                 transaction.copy(
                     category = name,

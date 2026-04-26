@@ -56,6 +56,7 @@ import com.hrach.financeapp.data.auth.SessionStore
 import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
+import com.hrach.financeapp.data.repository.LocalFinanceOverviewRepository
 import com.hrach.financeapp.ui.screens.AppBackgroundGradient
 import com.hrach.financeapp.ui.screens.AppBlue
 import com.hrach.financeapp.ui.screens.AppCard
@@ -134,6 +135,7 @@ private fun AuthenticatedApp(
     }
     var sessionLoaded by remember(sessionStore) { mutableStateOf(false) }
     var token by remember(sessionStore) { mutableStateOf<String?>(null) }
+    var offlineMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(authSession) {
         token = authSession.restoreToken()
@@ -151,12 +153,26 @@ private fun AuthenticatedApp(
 
     val activeToken = token
     if (activeToken.isNullOrBlank()) {
-        AuthScreen(
-            authSession = authSession,
-            onAuthenticated = { authToken ->
-                token = authToken
-            }
-        )
+        if (offlineMode) {
+            val offlineRepository = remember { LocalFinanceOverviewRepository() }
+            FinanceOverviewApp(
+                repository = offlineRepository,
+                onLogout = {
+                    offlineMode = false
+                }
+            )
+        } else {
+            AuthScreen(
+                authSession = authSession,
+                onAuthenticated = { authToken ->
+                    offlineMode = false
+                    token = authToken
+                },
+                onOffline = {
+                    offlineMode = true
+                }
+            )
+        }
         return
     }
 
@@ -398,7 +414,8 @@ private fun FinanceOverviewApp(
 @Composable
 private fun AuthScreen(
     authSession: AuthSessionCoordinator,
-    onAuthenticated: (String) -> Unit
+    onAuthenticated: (String) -> Unit,
+    onOffline: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     var authMode by remember { mutableStateOf(AuthMode.Login) }
@@ -590,6 +607,20 @@ private fun AuthScreen(
                     }
 
                     if (!isResetMode) {
+                        Button(
+                            onClick = {
+                                error = null
+                                infoMessage = null
+                                onOffline()
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White.copy(alpha = 0.72f), contentColor = Color(0xFF5E4B8B)),
+                            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Продолжить без регистрации")
+                        }
+
                         Button(
                             onClick = {
                                 authMode = if (isRegisterMode) AuthMode.Login else AuthMode.Register

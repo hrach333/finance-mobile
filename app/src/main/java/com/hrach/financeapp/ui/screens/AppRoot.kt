@@ -55,6 +55,9 @@ fun AppRoot(
         if (authState is AuthState.Authenticated && currentUser != null) {
             homeViewModel.onAuthenticated(currentUser!!.id)
         }
+        if (authState is AuthState.Offline) {
+            homeViewModel.onOfflineMode()
+        }
         if (authState is AuthState.Unauthenticated) {
             homeViewModel.onLoggedOut()
         }
@@ -78,7 +81,7 @@ fun AppRoot(
             AuthGateScreen(sessionViewModel)
         }
 
-        AuthState.Authenticated -> {
+        AuthState.Authenticated, AuthState.Offline -> {
             MainAppScaffold(
                 sessionViewModel = sessionViewModel,
                 homeViewModel = homeViewModel

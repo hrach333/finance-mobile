@@ -100,7 +100,8 @@ class FinanceDashboardController(
             groupId = groupId,
             type = type,
             name = name.trim(),
-            iconKey = iconKey
+            iconKey = iconKey,
+            isSystem = false
         )
         state = state.copy(
             overview = overview.copy(categories = overview.categories + category),
@@ -399,6 +400,7 @@ class FinanceDashboardController(
     }
 
     suspend fun updateCategory(category: CategoryOverview, name: String, type: String, iconKey: String?, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        if (category.isSystem) return failAction("Готовые категории нельзя редактировать. Создай свою категорию рядом.")
         val mutations = categoryMutations ?: return failAction("Редактирование категорий пока недоступно")
 
         return runMutationAction("Не удалось изменить категорию", rollbackState) {
@@ -412,6 +414,7 @@ class FinanceDashboardController(
     }
 
     suspend fun deleteCategory(category: CategoryOverview, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        if (category.isSystem) return failAction("Готовые категории нельзя удалить, чтобы операции всегда было куда отнести.")
         val mutations = categoryMutations ?: return failAction("Редактирование категорий пока недоступно")
 
         return runMutationAction("Не удалось удалить категорию", rollbackState) {
@@ -420,6 +423,9 @@ class FinanceDashboardController(
     }
 
     suspend fun createGroup(name: String, baseCurrency: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        if (state.overview?.isOfflineMode == true) {
+            return failAction("В офлайн режиме уже есть группа «Мой бюджет». Другие группы доступны после регистрации.")
+        }
         val mutations = groupMutations ?: return failAction("Редактирование групп пока недоступно")
 
         return runMutationAction("Не удалось создать группу", rollbackState) {
@@ -428,6 +434,9 @@ class FinanceDashboardController(
     }
 
     suspend fun updateGroup(group: GroupOverview, name: String, baseCurrency: String, rollbackState: FinanceDashboardState? = null): FinanceDashboardEvent {
+        if (state.overview?.isOfflineMode == true) {
+            return failAction("В офлайн режиме группа закреплена как «Мой бюджет».")
+        }
         val mutations = groupMutations ?: return failAction("Редактирование групп пока недоступно")
 
         return runMutationAction("Не удалось изменить группу", rollbackState) {

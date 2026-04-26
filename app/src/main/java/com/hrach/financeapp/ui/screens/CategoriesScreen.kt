@@ -166,10 +166,15 @@ private fun CategoryRow(item: CategoryDto, onEdit: () -> Unit, onDelete: () -> U
             )
             androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
                 Text(item.name, fontWeight = FontWeight.SemiBold)
-                Text(item.type.toCategoryTypeLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = if (item.isSystem) "${item.type.toCategoryTypeLabel()} · готовая" else item.type.toCategoryTypeLabel(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Редактировать") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
+            if (!item.isSystem) {
+                IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Редактировать") }
+                IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
+            }
         }
     }
 }

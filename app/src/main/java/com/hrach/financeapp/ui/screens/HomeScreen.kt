@@ -79,6 +79,7 @@ fun HomeScreen(
     val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
     val syncError by viewModel.syncError.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
 
     var expanded by remember { mutableStateOf(false) }
@@ -112,13 +113,26 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            // Показываем статус офлайн синхронизации
-            OfflineSyncStatus(
-                isSyncing = isSyncing,
-                pendingCount = pendingCount,
-                syncError = syncError,
-                isOnline = isOnline
-            )
+            if (isOfflineMode) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F6FC)),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Локальный режим: данные хранятся только на этом устройстве. Регистрация включит совместный бюджет и резервное хранение.",
+                        modifier = Modifier.padding(14.dp),
+                        color = Color(0xFF4B4760)
+                    )
+                }
+            } else {
+                OfflineSyncStatus(
+                    isSyncing = isSyncing,
+                    pendingCount = pendingCount,
+                    syncError = syncError,
+                    isOnline = isOnline
+                )
+            }
         }
         
         item {
@@ -139,7 +153,7 @@ fun HomeScreen(
             }
             currentUser?.let { user ->
                 Text(
-                    text = "Пользователь: ${user.name ?: user.email}",
+                    text = if (isOfflineMode) "Режим: без регистрации" else "Пользователь: ${user.name ?: user.email}",
                     color = Color(0xFF4B4760)
                 )
             }
@@ -190,14 +204,16 @@ fun HomeScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { showCreateGroup = true }) {
-                        Icon(Icons.Filled.Add, contentDescription = "Создать группу")
-                    }
-                    IconButton(
-                        onClick = { showEditGroup = true },
-                        enabled = selectedGroup != null
-                    ) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Редактировать группу")
+                    if (!isOfflineMode) {
+                        IconButton(onClick = { showCreateGroup = true }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Создать группу")
+                        }
+                        IconButton(
+                            onClick = { showEditGroup = true },
+                            enabled = selectedGroup != null
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Редактировать группу")
+                        }
                     }
                 }
             }

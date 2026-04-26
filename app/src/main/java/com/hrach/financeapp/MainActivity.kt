@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
         // Инициализируем компоненты для офлайн функциональности
         val database = FinanceDatabase.getInstance(applicationContext)
         val pendingOperationDao = database.pendingOperationDao()
+        val localFinanceDao = database.localFinanceDao()
         val networkMonitor = NetworkMonitor(applicationContext)
         val gson = Gson()
         
@@ -38,7 +39,8 @@ class MainActivity : ComponentActivity() {
             api = ApiClient.financeApi,
             offlineManager = offlineManager,
             networkMonitor = networkMonitor,
-            gson = gson
+            gson = gson,
+            localFinanceDao = localFinanceDao
         )
         
         val sessionViewModel = SessionViewModel(repository, ApiClient.sessionManager)

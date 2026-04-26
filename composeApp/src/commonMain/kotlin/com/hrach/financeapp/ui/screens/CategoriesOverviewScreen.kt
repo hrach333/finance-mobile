@@ -190,16 +190,22 @@ private fun CategoryOverviewCard(
                     )
                     Column {
                         Text(category.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                        Text(category.type.toCategoryTypeLabel(), color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
+                        Text(
+                            if (category.isSystem) "${category.type.toCategoryTypeLabel()} · готовая" else category.type.toCategoryTypeLabel(),
+                            color = Color(0xFF6B6579),
+                            style = MaterialTheme.typography.body2
+                        )
                     }
                 }
                 Box(modifier = Modifier.size(1.dp))
             }
             Divider(color = Color.White.copy(alpha = 0.7f))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RoundIconButton(FinanceIcon.Edit, "Изменить категорию", onEdit, size = 36.dp)
-                    RoundIconButton(FinanceIcon.Delete, "Удалить категорию", onDelete, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
+            if (!category.isSystem) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RoundIconButton(FinanceIcon.Edit, "Изменить категорию", onEdit, size = 36.dp)
+                        RoundIconButton(FinanceIcon.Delete, "Удалить категорию", onDelete, size = 36.dp, background = Color(0xFFFFE7EC), contentColor = AppRed)
+                    }
                 }
             }
         }

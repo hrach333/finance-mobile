@@ -45,6 +45,7 @@ fun GroupMembersScreen(viewModel: HomeViewModel, paddingValues: PaddingValues, o
     val selectedGroupId by viewModel.selectedGroupId.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     var email by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("member") }
     var roleExpanded by remember { mutableStateOf(false) }
@@ -75,7 +76,19 @@ fun GroupMembersScreen(viewModel: HomeViewModel, paddingValues: PaddingValues, o
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-        if (selectedGroupId == null) {
+        if (isOfflineMode) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Совместный бюджет начинается с аккаунта", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Сейчас бюджет хранится только на этом устройстве. Зарегистрируйтесь, чтобы приглашать близких, вести общий бюджет вместе и не потерять данные при смене телефона.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else if (selectedGroupId == null) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

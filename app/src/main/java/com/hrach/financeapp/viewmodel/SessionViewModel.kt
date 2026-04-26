@@ -18,6 +18,7 @@ sealed interface AuthState {
     data object Checking : AuthState
     data object Unauthenticated : AuthState
     data object Authenticated : AuthState
+    data object Offline : AuthState
 }
 
 class SessionViewModel(
@@ -105,6 +106,7 @@ class SessionViewModel(
             _loading.value = true
             _error.value = null
             try {
+                repository.setLocalMode(false)
                 val response = repository.login(email, password)
                 sessionManager.saveSession(response.token, response.user)
                 _currentUser.value = response.user
@@ -123,6 +125,7 @@ class SessionViewModel(
             _loading.value = true
             _error.value = null
             try {
+                repository.setLocalMode(false)
                 val response = repository.register(name, email, password)
                 sessionManager.saveSession(response.token, response.user)
                 _currentUser.value = response.user
@@ -141,6 +144,7 @@ class SessionViewModel(
             _loading.value = true
             _error.value = null
             try {
+                repository.setLocalMode(false)
                 val response = repository.loginWithYandex(oauthToken)
                 sessionManager.saveSession(response.token, response.user)
                 _currentUser.value = response.user
@@ -191,12 +195,24 @@ class SessionViewModel(
                 repository.logout()
             } catch (_: Exception) {
             } finally {
+                repository.setLocalMode(false)
                 sessionManager.clearSession()
                 _currentUser.value = null
                 _authState.value = AuthState.Unauthenticated
                 _loading.value = false
             }
         }
+    }
+
+    fun continueOffline() {
+        repository.setLocalMode(true)
+        _currentUser.value = UserDto(
+            id = 0,
+            name = "Гость",
+            email = "offline@local"
+        )
+        _error.value = null
+        _authState.value = AuthState.Offline
     }
 
     fun clearError() {

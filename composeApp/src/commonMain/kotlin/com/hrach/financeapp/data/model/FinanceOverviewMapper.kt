@@ -18,7 +18,8 @@ fun toFinanceOverview(
     categories: List<CategoryDto>,
     transactions: List<TransactionDto>,
     summary: SummaryDto?,
-    members: List<GroupMemberDto>
+    members: List<GroupMemberDto>,
+    isOfflineMode: Boolean = false
 ): FinanceOverview {
     val activeGroupName = groups.firstOrNull { it.id == activeGroupId }?.name
         ?: groups.firstOrNull()?.name
@@ -31,6 +32,7 @@ fun toFinanceOverview(
 
     return FinanceOverview(
         userEmail = userEmail,
+        isOfflineMode = isOfflineMode,
         activeGroupId = activeGroupId,
         activeGroupName = activeGroupName,
         groups = groups.map { group ->
@@ -69,7 +71,8 @@ fun toFinanceOverview(
                 groupId = category.groupId,
                 type = category.type,
                 name = category.name,
-                iconKey = category.iconKey
+                iconKey = category.iconKey,
+                isSystem = category.isSystem
             )
         },
         members = members.map { member ->

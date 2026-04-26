@@ -49,12 +49,28 @@ fun GroupsOverviewScreen(
             GroupsHeader(onBack = onBack)
         }
         item {
-            Button(
-                onClick = { showCreateDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
-            ) {
-                Text("Создать группу")
+            if (overview.isOfflineMode) {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    backgroundColor = Color(0xFFF9F6FC),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                    elevation = 4.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "В офлайн режиме доступна одна группа: «Мой бюджет». Зарегистрируйтесь, чтобы создавать несколько бюджетов и синхронизировать их.",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color(0xFF6B6579)
+                    )
+                }
+            } else {
+                Button(
+                    onClick = { showCreateDialog = true },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White)
+                ) {
+                    Text("Создать группу")
+                }
             }
         }
         items(overview.groups) { group ->
@@ -62,7 +78,8 @@ fun GroupsOverviewScreen(
                 group = group,
                 selected = group.id == overview.activeGroupId,
                 onSelect = { onSelectGroup(group) },
-                onEdit = { editTarget = group }
+                onEdit = { if (!overview.isOfflineMode) editTarget = group },
+                canEdit = !overview.isOfflineMode
             )
         }
     }
@@ -119,7 +136,8 @@ private fun GroupOverviewCard(
     group: GroupOverview,
     selected: Boolean,
     onSelect: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    canEdit: Boolean
 ) {
     val accent = if (selected) Color(0xFF16A34A) else Color(0xFF5E4B8B)
     GlassCard(
@@ -151,7 +169,9 @@ private fun GroupOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
-                RoundIconButton(FinanceIcon.Edit, "Изменить группу", onEdit, size = 36.dp)
+                if (canEdit) {
+                    RoundIconButton(FinanceIcon.Edit, "Изменить группу", onEdit, size = 36.dp)
+                }
                 RoundIconButton(
                     FinanceIcon.Check,
                     "Выбрать группу",

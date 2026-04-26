@@ -8,5 +8,6 @@ data class CategoryDto(
     val groupId: Int,
     val type: String,
     val name: String,
-    val iconKey: String? = null
+    val iconKey: String? = null,
+    val isSystem: Boolean = false
 )

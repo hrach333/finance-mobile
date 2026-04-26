@@ -93,6 +93,9 @@ class HomeViewModel(
     private val _isOnline = MutableStateFlow(true)
     val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
+    private val _isOfflineMode = MutableStateFlow(false)
+    val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
+
     private var currentUserId: Int? = null
     private var pollingJob: Job? = null
 
@@ -107,12 +110,23 @@ class HomeViewModel(
     }
 
     fun onAuthenticated(userId: Int) {
+        repository.setLocalMode(false)
+        _isOfflineMode.value = false
         currentUserId = userId
+        loadGroups()
+    }
+
+    fun onOfflineMode() {
+        repository.setLocalMode(true)
+        _isOfflineMode.value = true
+        currentUserId = null
         loadGroups()
     }
 
     fun onLoggedOut() {
         stopPolling()
+        repository.setLocalMode(false)
+        _isOfflineMode.value = false
         currentUserId = null
         _groups.value = emptyList()
         _selectedGroupId.value = null
@@ -163,6 +177,10 @@ class HomeViewModel(
     }
 
     fun createGroup(name: String, baseCurrency: String = "RUB") {
+        if (_isOfflineMode.value) {
+            _error.value = "В офлайн режиме уже есть группа «Мой бюджет». Другие группы доступны после регистрации."
+            return
+        }
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
@@ -179,6 +197,10 @@ class HomeViewModel(
     }
 
     fun updateGroup(name: String, baseCurrency: String = "RUB") {
+        if (_isOfflineMode.value) {
+            _error.value = "В офлайн режиме группа закреплена как «Мой бюджет»."
+            return
+        }
         val groupId = _selectedGroupId.value ?: return
         viewModelScope.launch {
             _loading.value = true
@@ -315,6 +337,7 @@ class HomeViewModel(
     }
 
     fun startPolling(intervalMs: Long = 15000L) {
+        if (_isOfflineMode.value) return
         val groupId = _selectedGroupId.value ?: return
         if (pollingJob?.isActive == true) return
 

@@ -62,20 +62,21 @@ fun HomeOverviewScreen(
         item {
             HomeHeader(
                 title = "Главная",
-                subtitle = "Пользователь: ${overview.userEmail}",
+                subtitle = if (overview.isOfflineMode) "Режим: без регистрации" else "Пользователь: ${overview.userEmail}",
                 onLogout = onLogout
             )
         }
 
         item {
-            OfflineStatusCard()
+            OfflineStatusCard(isOfflineMode = overview.isOfflineMode)
         }
 
         item {
             GroupSelectorPreview(
                 overview = overview,
                 onSelectGroup = onSelectGroup,
-                onOpenSettings = onOpenGroups
+                onOpenSettings = onOpenGroups,
+                canOpenSettings = !overview.isOfflineMode
             )
         }
 
@@ -146,7 +147,7 @@ private fun HomeHeader(title: String, subtitle: String, onLogout: (() -> Unit)?)
 }
 
 @Composable
-private fun OfflineStatusCard() {
+private fun OfflineStatusCard(isOfflineMode: Boolean) {
     GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -155,10 +156,18 @@ private fun OfflineStatusCard() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(AppGreen))
+            Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(if (isOfflineMode) AppPurple else AppGreen))
             Column {
-                Text("Онлайн", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
-                Text("Синхронизация и офлайн-очередь будут подключены позже", color = Color(0xFF6B6579), fontSize = 12.sp)
+                Text(if (isOfflineMode) "Локальный режим" else "Онлайн", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+                Text(
+                    if (isOfflineMode) {
+                        "Данные хранятся только на этом устройстве. Регистрация включит совместный бюджет и резервное хранение."
+                    } else {
+                        "Данные синхронизируются с аккаунтом"
+                    },
+                    color = Color(0xFF6B6579),
+                    fontSize = 12.sp
+                )
             }
         }
     }
@@ -168,7 +177,8 @@ private fun OfflineStatusCard() {
 private fun GroupSelectorPreview(
     overview: FinanceOverview,
     onSelectGroup: (GroupOverview) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    canOpenSettings: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
     val activeGroup = overview.groups.firstOrNull { it.id == overview.activeGroupId }
@@ -214,13 +224,15 @@ private fun GroupSelectorPreview(
                     }
                 }
             }
-            RoundIconButton(
-                icon = FinanceIcon.Settings,
-                contentDescription = "Настроить группы",
-                onClick = onOpenSettings,
-                background = AppPurple,
-                contentColor = Color.White
-            )
+            if (canOpenSettings) {
+                RoundIconButton(
+                    icon = FinanceIcon.Settings,
+                    contentDescription = "Настроить группы",
+                    onClick = onOpenSettings,
+                    background = AppPurple,
+                    contentColor = Color.White
+                )
+            }
         }
     }
 }

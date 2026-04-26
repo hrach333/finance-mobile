@@ -4,6 +4,7 @@ import com.hrach.financeapp.data.currency.CurrencyCatalog
 
 data class FinanceOverview(
     val userEmail: String,
+    val isOfflineMode: Boolean = false,
     val activeGroupId: Int? = null,
     val activeGroupName: String,
     val groups: List<GroupOverview> = emptyList(),
@@ -72,7 +73,8 @@ data class CategoryOverview(
     val groupId: Int,
     val type: String,
     val name: String,
-    val iconKey: String? = null
+    val iconKey: String? = null,
+    val isSystem: Boolean = false
 )
 
 data class GroupMemberOverview(

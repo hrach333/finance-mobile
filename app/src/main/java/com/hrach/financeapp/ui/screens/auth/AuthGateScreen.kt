@@ -257,6 +257,14 @@ private fun LoginForm(
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
+    TextButton(
+        onClick = { sessionViewModel.continueOffline() },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !loading
+    ) {
+        Text("Продолжить без регистрации")
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     Button(
         onClick = {
             sessionViewModel.clearError()
