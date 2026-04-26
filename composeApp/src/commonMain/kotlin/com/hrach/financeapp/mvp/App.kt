@@ -1,5 +1,10 @@
 package com.hrach.financeapp.mvp
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -54,6 +60,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hrach.financeapp.data.auth.SessionStore
+import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
@@ -193,6 +200,7 @@ private fun AuthenticatedApp(
     FinanceOverviewApp(
         repository = overviewRepository,
         offlineMigrationRepository = offlineRepository,
+        onboardingSessionStore = sessionStore,
         onLogout = {
             coroutineScope.launch {
                 authSession.logout(token)
@@ -212,6 +220,7 @@ private fun AuthenticatedApp(
 private fun FinanceOverviewApp(
     repository: FinanceOverviewRepository,
     offlineMigrationRepository: LocalFinanceOverviewRepository? = null,
+    onboardingSessionStore: SessionStore? = null,
     onLogout: (() -> Unit)?,
     onAuthExpired: (() -> Unit)? = null,
     onOpenRegistration: (() -> Unit)? = null
@@ -228,6 +237,13 @@ private fun FinanceOverviewApp(
         }
         var migrationError by remember { mutableStateOf<String?>(null) }
         var migrationInProgress by remember { mutableStateOf(false) }
+        var onboardingLoaded by remember(onboardingSessionStore) {
+            mutableStateOf(onboardingSessionStore == null)
+        }
+        var onboardingCompleted by remember(onboardingSessionStore) {
+            mutableStateOf(onboardingSessionStore == null)
+        }
+        var hiddenOnboardingStepTitle by remember { mutableStateOf<String?>(null) }
         fun applyDashboardEvent(event: FinanceDashboardEvent) {
             dashboardState = dashboardController.state
             if (event == FinanceDashboardEvent.AuthExpired) {
@@ -238,6 +254,14 @@ private fun FinanceOverviewApp(
         LaunchedEffect(repository) {
             dashboardState = dashboardController.markLoading()
             applyDashboardEvent(dashboardController.refresh())
+        }
+
+        LaunchedEffect(onboardingSessionStore) {
+            val store = onboardingSessionStore
+            if (store != null) {
+                onboardingCompleted = store.isOnboardingCompleted()
+                onboardingLoaded = true
+            }
         }
 
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
@@ -254,6 +278,24 @@ private fun FinanceOverviewApp(
                 if (loadedOverview == null) {
                     LoadingDashboard(state = dashboardState)
                 } else {
+                    val onboardingStep = if (onboardingLoaded && !onboardingCompleted) {
+                        loadedOverview.nextOnboardingStep()
+                    } else {
+                        null
+                    }
+                    LaunchedEffect(onboardingStep?.tab) {
+                        val targetTab = onboardingStep?.tab
+                        if (targetTab != null && targetTab != dashboardState.selectedTab) {
+                            dashboardState = dashboardController.selectTab(targetTab)
+                        }
+                    }
+                    LaunchedEffect(onboardingStep, onboardingLoaded, onboardingCompleted) {
+                        if (onboardingLoaded && !onboardingCompleted && onboardingStep == null) {
+                            onboardingSessionStore?.setOnboardingCompleted(true)
+                            onboardingCompleted = true
+                        }
+                    }
+
                     when (dashboardState.selectedTab) {
                         DashboardTab.Home -> HomeOverviewScreen(
                             overview = loadedOverview,
@@ -411,6 +453,34 @@ private fun FinanceOverviewApp(
                         DashboardTab.Analytics -> AnalyticsOverviewScreen(loadedOverview)
                     }
 
+                    onboardingStep?.takeIf { it.title != hiddenOnboardingStepTitle }?.let { step ->
+                        OnboardingOverlay(
+                            step = step,
+                            onNavigate = {
+                                dashboardState = dashboardController.selectTab(step.tab)
+                                hiddenOnboardingStepTitle = step.title
+                            },
+                            onSkip = {
+                                coroutineScope.launch {
+                                    onboardingSessionStore?.setOnboardingCompleted(true)
+                                    onboardingCompleted = true
+                                }
+                            }
+                        )
+                    }
+
+                    if (onboardingSessionStore != null) {
+                        OnboardingResetButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    onboardingSessionStore.setOnboardingCompleted(false)
+                                    onboardingCompleted = false
+                                    hiddenOnboardingStepTitle = null
+                                }
+                            }
+                        )
+                    }
+
                     if (showHomeCreateTransactionDialog) {
                         TransactionOverviewEditorDialog(
                             title = "Новая операция",
@@ -469,6 +539,123 @@ private fun FinanceOverviewApp(
                 }
             }
         }
+}
+
+@Composable
+private fun OnboardingResetButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        TextButton(
+            onClick = onClick,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.82f))
+        ) {
+            Text("Сбросить обучение", color = AppPurple, fontSize = 12.sp)
+        }
+    }
+}
+
+private data class OnboardingStep(
+    val tab: DashboardTab,
+    val title: String,
+    val message: String,
+    val targetLabel: String
+)
+
+private fun FinanceOverview.nextOnboardingStep(): OnboardingStep? {
+    val hasExpenseCategory = categories.any { !it.isSystem && it.type.equals("EXPENSE", ignoreCase = true) }
+    val hasIncomeCategory = categories.any { !it.isSystem && it.type.equals("INCOME", ignoreCase = true) }
+    return when {
+        groups.isEmpty() -> OnboardingStep(
+            tab = DashboardTab.Groups,
+            title = "Шаг 1. Создайте группу",
+            message = "Нажмите кнопку «Создать группу», укажите название бюджета и валюту. Группа объединяет счета, категории и операции.",
+            targetLabel = "Создать группу"
+        )
+        accounts.isEmpty() -> OnboardingStep(
+            tab = DashboardTab.Accounts,
+            title = "Шаг 2. Создайте счет",
+            message = "Нажмите «Добавить счет». Можно начать с наличных или карты, а баланс указать текущий.",
+            targetLabel = "Добавить счет"
+        )
+        !hasExpenseCategory -> OnboardingStep(
+            tab = DashboardTab.Categories,
+            title = "Шаг 3. Категория расходов",
+            message = "Нажмите «Добавить категорию» и создайте первую категорию с типом «Расход». Например: продукты, дом или транспорт.",
+            targetLabel = "Добавить категорию"
+        )
+        !hasIncomeCategory -> OnboardingStep(
+            tab = DashboardTab.Categories,
+            title = "Шаг 4. Категория доходов",
+            message = "Снова нажмите «Добавить категорию», переключите тип на «Доход» и сохраните категорию для поступлений.",
+            targetLabel = "Добавить категорию"
+        )
+        transactions.isEmpty() -> OnboardingStep(
+            tab = DashboardTab.Transactions,
+            title = "Шаг 5. Первая операция",
+            message = "Нажмите «Добавить операцию», выберите счет, категорию, сумму и дату. После сохранения обучение больше не появится.",
+            targetLabel = "Добавить операцию"
+        )
+        else -> null
+    }
+}
+
+@Composable
+private fun OnboardingOverlay(
+    step: OnboardingStep,
+    onNavigate: () -> Unit,
+    onSkip: () -> Unit
+) {
+    val transition = rememberInfiniteTransition()
+    val pulse by transition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 780),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.58f))
+            .padding(20.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            backgroundColor = Color(0xFFFCF8FF),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.9f)),
+            elevation = 14.dp,
+            modifier = Modifier.fillMaxWidth().widthIn(max = 520.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(step.title, color = AppInk, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(step.message, color = Color(0xFF4B4760), style = MaterialTheme.typography.body1)
+                Button(
+                    onClick = onNavigate,
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White),
+                    elevation = ButtonDefaults.elevation(defaultElevation = 10.dp),
+                    modifier = Modifier.fillMaxWidth().scale(pulse)
+                ) {
+                    FinanceIcon(FinanceIcon.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Box(Modifier.width(8.dp))
+                    Text("Найти: ${step.targetLabel}")
+                }
+                TextButton(onClick = onSkip, modifier = Modifier.align(Alignment.End)) {
+                    Text("Пропустить обучение", color = AppMuted)
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -638,7 +825,7 @@ private fun AuthScreen(
                         )
                     }
 
-                    if (isResetMode && codeRequested) {
+                    if (isRegisterMode || (isResetMode && codeRequested)) {
                         TextField(
                             value = passwordConfirm,
                             onValueChange = { passwordConfirm = it },
@@ -691,10 +878,10 @@ private fun AuthScreen(
                                     }
                                 } else {
                                     val passwordValidationError = if (isRegisterMode) validatePassword(password) else null
-                                    if (passwordValidationError != null) {
-                                        error = passwordValidationError
-                                    } else {
-                                        when (val result =
+                                    when {
+                                        passwordValidationError != null -> error = passwordValidationError
+                                        isRegisterMode && password != passwordConfirm -> error = "Пароли не совпадают"
+                                        else -> when (val result =
                                             if (isRegisterMode) {
                                                 authSession.register(name = name, email = email, password = password)
                                             } else {
@@ -716,7 +903,10 @@ private fun AuthScreen(
                         enabled = !isLoading && email.isNotBlank() &&
                             when (authMode) {
                                 AuthMode.Login -> password.isNotBlank()
-                                AuthMode.Register -> name.isNotBlank() && password.isNotBlank()
+                                AuthMode.Register -> name.isNotBlank() &&
+                                    password.isNotBlank() &&
+                                    passwordConfirm.isNotBlank() &&
+                                    password == passwordConfirm
                                 AuthMode.ForgotPassword -> !codeRequested ||
                                     (resetCode.isNotBlank() && password.isNotBlank() && passwordConfirm.isNotBlank())
                             },
@@ -757,6 +947,7 @@ private fun AuthScreen(
                                 authMode = if (isRegisterMode) AuthMode.Login else AuthMode.Register
                                 error = null
                                 infoMessage = null
+                                passwordConfirm = ""
                             },
                             shape = RoundedCornerShape(18.dp),
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),

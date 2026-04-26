@@ -19,7 +19,15 @@ class AndroidSessionStore(context: Context) : SessionStore {
         preferences.edit().remove(KEY_TOKEN).apply()
     }
 
+    override suspend fun isOnboardingCompleted(): Boolean =
+        preferences.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        preferences.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
+    }
+
     private companion object {
         const val KEY_TOKEN = "auth_token"
+        const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     }
 }

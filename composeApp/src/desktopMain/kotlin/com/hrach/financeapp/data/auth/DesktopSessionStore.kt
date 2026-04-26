@@ -16,27 +16,54 @@ class DesktopSessionStore(
     )
 ) : SessionStore {
     override suspend fun getToken(): String? {
-        if (!sessionFile.exists()) return null
-        return Properties().apply {
-            sessionFile.inputStream().use(::load)
-        }.getProperty(KEY_TOKEN)?.takeIf { it.isNotBlank() }
+        return readProperties().getProperty(KEY_TOKEN)?.takeIf { it.isNotBlank() }
     }
 
     override suspend fun saveToken(token: String) {
-        sessionFile.parent.createDirectories()
-        Properties().apply {
-            setProperty(KEY_TOKEN, token)
-            sessionFile.outputStream().use { output ->
-                store(output, "Умный бюджет session")
+        writeProperties(
+            readProperties().apply {
+                setProperty(KEY_TOKEN, token)
             }
-        }
+        )
     }
 
     override suspend fun clearToken() {
-        Files.deleteIfExists(sessionFile)
+        val properties = readProperties()
+        properties.remove(KEY_TOKEN)
+        if (properties.isEmpty) {
+            Files.deleteIfExists(sessionFile)
+        } else {
+            writeProperties(properties)
+        }
+    }
+
+    override suspend fun isOnboardingCompleted(): Boolean =
+        readProperties().getProperty(KEY_ONBOARDING_COMPLETED)?.toBooleanStrictOrNull() == true
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        writeProperties(
+            readProperties().apply {
+                setProperty(KEY_ONBOARDING_COMPLETED, completed.toString())
+            }
+        )
+    }
+
+    private fun readProperties(): Properties {
+        if (!sessionFile.exists()) return Properties()
+        return Properties().apply {
+            sessionFile.inputStream().use(::load)
+        }
+    }
+
+    private fun writeProperties(properties: Properties) {
+        sessionFile.parent.createDirectories()
+        sessionFile.outputStream().use { output ->
+            properties.store(output, "Умный бюджет session")
+        }
     }
 
     private companion object {
         const val KEY_TOKEN = "auth_token"
+        const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     }
 }

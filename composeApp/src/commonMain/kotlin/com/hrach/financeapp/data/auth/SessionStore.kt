@@ -4,4 +4,6 @@ interface SessionStore {
     suspend fun getToken(): String?
     suspend fun saveToken(token: String)
     suspend fun clearToken()
+    suspend fun isOnboardingCompleted(): Boolean
+    suspend fun setOnboardingCompleted(completed: Boolean)
 }
