@@ -1,7 +1,7 @@
 package com.hrach.financeapp.data.offline
 
 import android.content.Context
-import com.hrach.financeapp.mvp.MainActivity
+import com.hrach.financeapp.MainActivity
 
 actual class PlatformOfflineStore actual constructor() {
     actual fun read(): String? {

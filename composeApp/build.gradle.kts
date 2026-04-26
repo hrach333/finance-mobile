@@ -29,7 +29,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "SmartBudgetMvp"
+            baseName = "SmartBudget"
             isStatic = true
         }
     }
@@ -94,11 +94,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.hrach.financeapp.mvp"
+        applicationId = "com.hrach.financeapp"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 8
+        versionName = "1.2.0"
 
         manifestPlaceholders["YANDEX_CLIENT_ID"] = providers
             .gradleProperty("YANDEX_CLIENT_ID")
@@ -126,6 +126,24 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("app/financeapp-release-key.jks")
+            storePassword = "finance123"
+            keyAlias = "financeapp-key"
+            keyPassword = "finance123"
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".mvp"
+        }
+        release {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -151,7 +169,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
             )
             packageName = "SmartBudgetMvp"
-            packageVersion = "1.0.0"
+            packageVersion = "1.2.0"
         }
     }
 }

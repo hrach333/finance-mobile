@@ -27,7 +27,7 @@ class DesktopSessionStore(
         Properties().apply {
             setProperty(KEY_TOKEN, token)
             sessionFile.outputStream().use { output ->
-                store(output, "SmartBudget session")
+                store(output, "Умный бюджет session")
             }
         }
     }

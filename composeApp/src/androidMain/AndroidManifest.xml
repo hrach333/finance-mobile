@@ -4,11 +4,13 @@
 
     <application
         android:allowBackup="true"
-        android:label="SmartBudget MVP"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="Умный бюджет"
         android:supportsRtl="true"
         android:theme="@style/Theme.SmartBudget">
         <activity
-            android:name=".mvp.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

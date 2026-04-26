@@ -594,7 +594,7 @@ private fun AuthScreen(
                         color = Color(0xFF23212B)
                     )
                     Text(
-                        text = "SmartBudget",
+                        text = "Умный бюджет",
                         style = MaterialTheme.typography.body2,
                         color = Color(0xFF6B6579)
                     )
@@ -808,7 +808,7 @@ private fun validatePassword(password: String): String? {
 private fun LoadingDashboard(state: FinanceDashboardState) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         HeaderBlock(
-            title = "SmartBudget",
+            title = "Умный бюджет",
             subtitle = if (state.isLoading) "Загрузка данных" else "Данные недоступны"
         )
         Card(
@@ -923,7 +923,7 @@ private fun DesktopRail(selectedTab: DashboardTab, onTabSelected: (DashboardTab)
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
-            text = "SmartBudget",
+            text = "Умный бюджет",
             style = MaterialTheme.typography.h5,
             fontWeight = FontWeight.Bold,
             color = AppInk

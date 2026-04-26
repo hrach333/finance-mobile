@@ -10,6 +10,9 @@ import com.hrach.financeapp.data.network.KtorAuthRepository
 import com.hrach.financeapp.data.network.KtorFinanceDataSource
 import com.hrach.financeapp.data.repository.CurrentMonthFinancePeriodProvider
 import com.hrach.financeapp.data.repository.RemoteFinanceOverviewRepository
+import org.jetbrains.compose.resources.painterResource
+import smartbudget.composeapp.generated.resources.Res
+import smartbudget.composeapp.generated.resources.app_icon
 
 fun main() = application {
     val closeHandlers = mutableListOf<() -> Unit>()
@@ -26,7 +29,8 @@ fun main() = application {
             exitApplication()
         },
         state = windowState,
-        title = "SmartBudget MVP"
+        title = "Умный бюджет",
+        icon = painterResource(Res.drawable.app_icon)
     ) {
         App(
             authRepository = authRepository,
