@@ -47,7 +47,7 @@ import smartbudget.composeapp.generated.resources.Res
 import smartbudget.composeapp.generated.resources.bg_balance_card
 import smartbudget.composeapp.generated.resources.bg_expense_card
 import smartbudget.composeapp.generated.resources.bg_income_card
-import smartbudget.composeapp.generated.resources.img_wallet2
+import smartbudget.composeapp.generated.resources.img_wallet
 
 @Composable
 fun HomeOverviewScreen(
@@ -257,13 +257,11 @@ private fun SummaryHeroCard(overview: FinanceOverview) {
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 16.dp, end = 18.dp)
-                        .size(112.dp)
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color.White.copy(alpha = 0.26f)),
+                        .size(112.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(Res.drawable.img_wallet2),
+                        painter = painterResource(Res.drawable.img_wallet),
                         contentDescription = null,
                         modifier = Modifier.size(86.dp),
                         contentScale = ContentScale.Fit
@@ -273,9 +271,9 @@ private fun SummaryHeroCard(overview: FinanceOverview) {
                     modifier = Modifier.align(Alignment.TopStart).padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Общий баланс", color = Color.White.copy(alpha = 0.84f), style = MaterialTheme.typography.subtitle1)
-                    Text(overview.summary.balanceLabel, color = Color.White, style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
-                    Text(overview.summary.subtitle, color = Color.White.copy(alpha = 0.78f), style = MaterialTheme.typography.body2)
+                    Text("Общий баланс", color = Color(0xFF454545), style = MaterialTheme.typography.subtitle1)
+                    Text(overview.summary.balanceLabel, color = Color(0xFF454545), style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
+                    Text(overview.summary.subtitle, color = Color(0xFF454545).copy(alpha = 0.76f), style = MaterialTheme.typography.body2)
                 }
             }
         }
@@ -316,11 +314,11 @@ private fun SummaryStatCard(title: String, value: String, isIncome: Boolean, mod
                     .background(Color.White.copy(alpha = 0.2f))
             )
             Column(modifier = Modifier.padding(start = 20.dp, top = 18.dp, end = 10.dp, bottom = 16.dp)) {
-                Text(title, style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.9f))
+                Text(title, style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.SemiBold, color = Color(0xFF454545))
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(if (isIncome) "+" else "−", color = Color.White, style = MaterialTheme.typography.h5, fontWeight = FontWeight.Bold)
-                    Text(value.replace("+", "").replace("-", "").replace("−", ""), color = Color.White, style = MaterialTheme.typography.h5, fontWeight = FontWeight.Bold)
+                    Text(if (isIncome) "+" else "−", color = Color(0xFF454545), style = MaterialTheme.typography.h5, fontWeight = FontWeight.Bold)
+                    Text(value.replace("+", "").replace("-", "").replace("−", ""), color = Color(0xFF454545), style = MaterialTheme.typography.h5, fontWeight = FontWeight.Bold)
                 }
             }
         }

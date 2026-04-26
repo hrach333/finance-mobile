@@ -37,6 +37,7 @@ import com.hrach.financeapp.data.model.FinanceOverview
 @Composable
 fun CategoriesOverviewScreen(
     overview: FinanceOverview,
+    onBack: () -> Unit,
     onCreateCategory: (String, String, String?) -> Unit,
     onUpdateCategory: (CategoryOverview, String, String, String?) -> Unit,
     onDeleteCategory: (CategoryOverview) -> Unit
@@ -49,7 +50,31 @@ fun CategoriesOverviewScreen(
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            ScreenHeader(title = "Категории", subtitle = "Группировка доходов и расходов")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RoundIconButton(
+                    icon = FinanceIcon.Back,
+                    contentDescription = "Назад",
+                    onClick = onBack,
+                    size = 40.dp
+                )
+                Column {
+                    Text(
+                        text = "Категории",
+                        style = MaterialTheme.typography.h5,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF23212B)
+                    )
+                    Text(
+                        text = "Группировка доходов и расходов",
+                        color = Color(0xFF6B6579),
+                        style = MaterialTheme.typography.body2
+                    )
+                }
+            }
         }
         item {
             Button(
@@ -180,8 +205,6 @@ private fun CategoryOverviewCard(
         }
     }
 }
-
-private fun String.categoryTint(): Color = if (this == "INCOME") AppGreen else AppRed
 
 @Composable
 private fun CategoryOverviewEditorDialog(
@@ -326,32 +349,4 @@ private fun iconOptionsForType(type: String): List<String> {
     } else {
         listOf("shopping", "transport", "health", "home", "food", "sport", "gift", "other")
     }
-}
-
-private fun String?.toCategoryIcon(type: String): FinanceIcon = when (this?.lowercase()) {
-    "shopping" -> FinanceIcon.Shopping
-    "transport" -> FinanceIcon.Transport
-    "health", "medicine", "medical" -> FinanceIcon.Health
-    "home" -> FinanceIcon.Home
-    "food", "restaurant" -> FinanceIcon.Food
-    "sport", "sports" -> FinanceIcon.Sport
-    "salary", "cash", "bonus" -> FinanceIcon.Cash
-    "work" -> FinanceIcon.Work
-    "gift" -> FinanceIcon.Gift
-    "other" -> FinanceIcon.Other
-    else -> if (type == "INCOME") FinanceIcon.Cash else FinanceIcon.Tag
-}
-
-private fun String?.categoryColor(type: String): Color = when (this?.lowercase()) {
-    "shopping" -> Color(0xFF8B5CF6)
-    "transport" -> Color(0xFF2563EB)
-    "health", "medicine", "medical" -> Color(0xFFE11D48)
-    "home" -> Color(0xFF0F766E)
-    "food", "restaurant" -> Color(0xFFF97316)
-    "sport", "sports" -> Color(0xFF16A34A)
-    "salary", "cash" -> Color(0xFF059669)
-    "work" -> Color(0xFF4F46E5)
-    "gift", "bonus" -> Color(0xFFDB2777)
-    "other" -> Color(0xFF64748B)
-    else -> type.categoryTint()
 }

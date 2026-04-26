@@ -415,7 +415,8 @@ fun TransactionOverviewCard(
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null
 ) {
-    val tint = transaction.colorToken.toScreenColor()
+    val type = if (transaction.kind == TransactionKind.Income) "INCOME" else "EXPENSE"
+    val tint = transaction.categoryIconKey.categoryColor(type)
 
     GlassCard(
         backgroundColor = Color(0xFFF4EDF7).copy(alpha = 0.96f),
@@ -435,7 +436,7 @@ fun TransactionOverviewCard(
                     contentAlignment = Alignment.Center
                 ) {
                     FinanceIcon(
-                        icon = if (transaction.kind == TransactionKind.Income) FinanceIcon.Check else FinanceIcon.Tag,
+                        icon = transaction.categoryIconKey.toCategoryIcon(type),
                         contentDescription = null,
                         tint = tint,
                         modifier = Modifier.size(22.dp)
@@ -476,7 +477,7 @@ fun TransactionOverviewCard(
 }
 
 @Composable
-private fun TransactionOverviewEditorDialog(
+fun TransactionOverviewEditorDialog(
     title: String,
     accounts: List<AccountOverview>,
     categories: List<CategoryOverview>,

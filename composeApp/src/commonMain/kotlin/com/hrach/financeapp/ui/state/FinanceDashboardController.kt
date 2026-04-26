@@ -114,7 +114,21 @@ class FinanceDashboardController(
         val overview = state.overview ?: return state
         val updated = category.copy(name = name.trim(), type = type, iconKey = iconKey)
         state = state.copy(
-            overview = overview.copy(categories = overview.categories.map { if (it.id == category.id) updated else it }),
+            overview = overview.copy(
+                categories = overview.categories.map { if (it.id == category.id) updated else it },
+                transactions = overview.transactions.map {
+                    if (it.categoryId == category.id) {
+                        it.copy(
+                            category = updated.name,
+                            categoryIconKey = updated.iconKey,
+                            kind = type.toTransactionKind(),
+                            colorToken = if (type.toTransactionKind() == TransactionKind.Income) OverviewColorToken.Income else OverviewColorToken.Expense
+                        )
+                    } else {
+                        it
+                    }
+                }
+            ),
             isLoading = false,
             errorMessage = null
         )
@@ -243,6 +257,7 @@ class FinanceDashboardController(
             accountId = accountId,
             categoryId = categoryId,
             category = category?.name ?: type.toTransactionTypeLabel(),
+            categoryIconKey = category?.iconKey,
             comment = comment.takeIf { it.isNotBlank() } ?: account.title,
             amount = amount,
             currency = account.currency,
@@ -277,6 +292,7 @@ class FinanceDashboardController(
             accountId = accountId,
             categoryId = categoryId,
             category = category?.name ?: type.toTransactionTypeLabel(),
+            categoryIconKey = category?.iconKey,
             comment = comment.takeIf { it.isNotBlank() } ?: account.title,
             amount = amount,
             currency = account.currency,

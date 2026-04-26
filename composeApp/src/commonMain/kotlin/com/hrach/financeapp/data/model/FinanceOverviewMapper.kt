@@ -26,7 +26,7 @@ fun toFinanceOverview(
     val activeGroupCurrency = groups.firstOrNull { it.id == activeGroupId }?.baseCurrency
         ?: groups.firstOrNull()?.baseCurrency
         ?: CurrencyCatalog.DEFAULT_CODE
-    val categoryNames = categories.associate { it.id to it.name }
+    val categoriesById = categories.associateBy { it.id }
     val accountNames = accounts.associate { it.id to it.name }
 
     return FinanceOverview(
@@ -85,13 +85,15 @@ fun toFinanceOverview(
             .sortedByDescending { it.transactionDate }
             .map { transaction ->
                 val kind = transaction.type.toTransactionKind()
+                val category = categoriesById[transaction.categoryId]
                 TransactionOverview(
                     id = transaction.id,
                     groupId = transaction.groupId,
                     accountId = transaction.accountId,
                     createdBy = transaction.createdBy,
                     categoryId = transaction.categoryId,
-                    category = categoryNames[transaction.categoryId] ?: transaction.type.toTransactionTypeLabel(),
+                    category = category?.name ?: transaction.type.toTransactionTypeLabel(),
+                    categoryIconKey = category?.iconKey,
                     comment = transaction.comment?.takeIf { it.isNotBlank() }
                         ?: accountNames[transaction.accountId]
                         ?: "Счет #${transaction.accountId}",

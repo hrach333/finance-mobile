@@ -7,9 +7,9 @@ enum class DashboardTab(val title: String, val glyph: String, val showInNavigati
     Transactions("Операции", "О"),
     Accounts("Счета", "С"),
     Groups("Группы", "Г", showInNavigation = false),
-    Categories("Категории", "К"),
-    Members("Участники", "У"),
-    Analytics("Аналитика", "А")
+    Categories("Категории", "К", showInNavigation = false),
+    Analytics("Анализ", "А"),
+    Members("Участники", "У")
 }
 
 data class FinanceDashboardState(

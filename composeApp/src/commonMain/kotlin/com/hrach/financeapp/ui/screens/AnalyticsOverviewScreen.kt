@@ -2,6 +2,7 @@ package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,12 +32,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.TransactionKind
+import org.jetbrains.compose.resources.painterResource
+import smartbudget.composeapp.generated.resources.Res
+import smartbudget.composeapp.generated.resources.bg_expense_card
+import smartbudget.composeapp.generated.resources.bg_income_card
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
@@ -92,12 +98,14 @@ fun AnalyticsOverviewScreen(overview: FinanceOverview) {
                     title = "Доход",
                     value = totalIncome.moneyLabel(currency, withSign = true),
                     accent = Color(0xFF16A34A),
+                    isIncome = true,
                     modifier = Modifier.weight(1f)
                 )
                 SummaryMetricCard(
                     title = "Расход",
                     value = totalExpense.moneyLabel(currency, withSign = true, negative = true),
                     accent = Color(0xFFE85B6A),
+                    isIncome = false,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -150,11 +158,12 @@ private fun SummaryMetricCard(
     title: String,
     value: String,
     accent: Color,
+    isIncome: Boolean,
     modifier: Modifier = Modifier
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
-        backgroundColor = Color(0xFFF9F6FC),
+        backgroundColor = Color.Transparent,
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
         elevation = 4.dp,
         modifier = modifier.height(132.dp)
@@ -162,14 +171,14 @@ private fun SummaryMetricCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        listOf(accent.copy(alpha = 0.10f), Color.White.copy(alpha = 0.15f))
-                    )
-                )
-                .padding(16.dp)
         ) {
-            Column(modifier = Modifier.align(Alignment.CenterStart)) {
+            Image(
+                painter = painterResource(if (isIncome) Res.drawable.bg_income_card else Res.drawable.bg_expense_card),
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Column(modifier = Modifier.align(Alignment.CenterStart).padding(16.dp)) {
                 Text(title, color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(

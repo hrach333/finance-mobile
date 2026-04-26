@@ -155,6 +155,34 @@ fun FinanceIcon(
     )
 }
 
+fun String?.toCategoryIcon(type: String): FinanceIcon = when (this?.lowercase()) {
+    "shopping" -> FinanceIcon.Shopping
+    "transport" -> FinanceIcon.Transport
+    "health", "medicine", "medical" -> FinanceIcon.Health
+    "home" -> FinanceIcon.Home
+    "food", "restaurant" -> FinanceIcon.Food
+    "sport", "sports" -> FinanceIcon.Sport
+    "salary", "cash", "bonus" -> FinanceIcon.Cash
+    "work" -> FinanceIcon.Work
+    "gift" -> FinanceIcon.Gift
+    "other" -> FinanceIcon.Other
+    else -> if (type == "INCOME") FinanceIcon.Cash else FinanceIcon.Tag
+}
+
+fun String?.categoryColor(type: String): Color = when (this?.lowercase()) {
+    "shopping" -> Color(0xFF8B5CF6)
+    "transport" -> Color(0xFF2563EB)
+    "health", "medicine", "medical" -> Color(0xFFE11D48)
+    "home" -> Color(0xFF0F766E)
+    "food", "restaurant" -> Color(0xFFF97316)
+    "sport", "sports" -> Color(0xFF16A34A)
+    "salary", "cash" -> Color(0xFF059669)
+    "work" -> Color(0xFF4F46E5)
+    "gift", "bonus" -> Color(0xFFDB2777)
+    "other" -> Color(0xFF64748B)
+    else -> if (type == "INCOME") AppGreen else AppRed
+}
+
 private fun FinanceIcon.imageVector(): ImageVector = when (this) {
     FinanceIcon.Home -> Icons.Filled.Home
     FinanceIcon.List -> Icons.AutoMirrored.Filled.List

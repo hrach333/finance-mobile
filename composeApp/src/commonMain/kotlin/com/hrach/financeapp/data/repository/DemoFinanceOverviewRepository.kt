@@ -83,6 +83,7 @@ class DemoFinanceOverviewRepository :
             accountId = 1,
             categoryId = 4,
             category = "Зарплата",
+            categoryIconKey = "salary",
             comment = "Основная карта",
             amount = 150_000.0,
             transactionDate = "2026-04-23",
@@ -97,6 +98,7 @@ class DemoFinanceOverviewRepository :
             accountId = 1,
             categoryId = 1,
             category = "Продукты",
+            categoryIconKey = "shopping",
             comment = "Семья",
             amount = 8_420.0,
             transactionDate = "2026-04-22",
@@ -111,6 +113,7 @@ class DemoFinanceOverviewRepository :
             accountId = 1,
             categoryId = 2,
             category = "Такси",
+            categoryIconKey = "transport",
             comment = "Транспорт",
             amount = 1_150.0,
             transactionDate = "2026-04-21",
@@ -125,6 +128,7 @@ class DemoFinanceOverviewRepository :
             accountId = 2,
             categoryId = 5,
             category = "Подработка",
+            categoryIconKey = "work",
             comment = "Наличные",
             amount = 18_000.0,
             transactionDate = "2026-04-20",
@@ -139,6 +143,7 @@ class DemoFinanceOverviewRepository :
             accountId = 1,
             categoryId = 3,
             category = "Аптека",
+            categoryIconKey = "health",
             comment = "Здоровье",
             amount = 2_340.0,
             transactionDate = "2026-04-19",
@@ -264,6 +269,19 @@ class DemoFinanceOverviewRepository :
             type = type,
             iconKey = iconKey
         )
+        transactions.replaceAll { transaction ->
+            if (transaction.categoryId == categoryId) {
+                val kind = type.toDemoTransactionKind()
+                transaction.copy(
+                    category = name,
+                    categoryIconKey = iconKey,
+                    kind = kind,
+                    colorToken = if (kind == TransactionKind.Income) OverviewColorToken.Income else OverviewColorToken.Expense
+                )
+            } else {
+                transaction
+            }
+        }
     }
 
     override suspend fun deleteCategory(categoryId: Int) {
@@ -337,6 +355,7 @@ class DemoFinanceOverviewRepository :
                 createdBy = createdBy,
                 categoryId = categoryId,
                 category = categories.firstOrNull { it.id == categoryId }?.name ?: type.toDemoTransactionTypeLabel(),
+                categoryIconKey = categories.firstOrNull { it.id == categoryId }?.iconKey,
                 comment = comment?.takeIf { it.isNotBlank() }
                     ?: accounts.firstOrNull { it.id == accountId }?.title
                     ?: "Счет #$accountId",
@@ -373,6 +392,7 @@ class DemoFinanceOverviewRepository :
             createdBy = createdBy,
             categoryId = categoryId,
             category = categories.firstOrNull { it.id == categoryId }?.name ?: type.toDemoTransactionTypeLabel(),
+            categoryIconKey = categories.firstOrNull { it.id == categoryId }?.iconKey,
             comment = comment?.takeIf { it.isNotBlank() }
                 ?: accounts.firstOrNull { it.id == accountId }?.title
                 ?: "Счет #$accountId",

@@ -1,6 +1,7 @@
 package com.hrach.financeapp.mvp
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -69,6 +71,7 @@ import com.hrach.financeapp.ui.screens.GroupMembersOverviewScreen
 import com.hrach.financeapp.ui.screens.GroupsOverviewScreen
 import com.hrach.financeapp.ui.screens.HomeOverviewScreen
 import com.hrach.financeapp.ui.screens.RoundIconButton
+import com.hrach.financeapp.ui.screens.TransactionOverviewEditorDialog
 import com.hrach.financeapp.ui.screens.TransactionsOverviewScreen
 import com.hrach.financeapp.ui.state.AuthActionResult
 import com.hrach.financeapp.ui.state.AuthResult
@@ -78,6 +81,9 @@ import com.hrach.financeapp.ui.state.FinanceDashboardController
 import com.hrach.financeapp.ui.state.FinanceDashboardEvent
 import com.hrach.financeapp.ui.state.FinanceDashboardState
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import smartbudget.composeapp.generated.resources.Res
+import smartbudget.composeapp.generated.resources.btn_add_bg
 
 private val backgroundGradient = AppBackgroundGradient
 
@@ -185,6 +191,7 @@ private fun FinanceOverviewApp(
         var dashboardState by remember(dashboardController) {
             mutableStateOf(dashboardController.state)
         }
+        var showHomeCreateTransactionDialog by remember { mutableStateOf(false) }
         fun applyDashboardEvent(event: FinanceDashboardEvent) {
             dashboardState = dashboardController.state
             if (event == FinanceDashboardEvent.AuthExpired) {
@@ -202,6 +209,9 @@ private fun FinanceOverviewApp(
                 selectedTab = dashboardState.selectedTab,
                 onTabSelected = { tab ->
                     dashboardState = dashboardController.selectTab(tab)
+                },
+                onHomeAddTransaction = {
+                    showHomeCreateTransactionDialog = true
                 }
             ) {
                 val loadedOverview = dashboardState.overview
@@ -283,6 +293,9 @@ private fun FinanceOverviewApp(
                         )
                         DashboardTab.Categories -> CategoriesOverviewScreen(
                             overview = loadedOverview,
+                            onBack = {
+                                dashboardState = dashboardController.selectTab(DashboardTab.Home)
+                            },
                             onCreateCategory = { name, type, iconKey ->
                                 val rollbackState = dashboardController.state
                                 dashboardState = dashboardController.previewCreateCategory(name, type, iconKey)
@@ -357,6 +370,25 @@ private fun FinanceOverviewApp(
                             }
                         )
                         DashboardTab.Analytics -> AnalyticsOverviewScreen(loadedOverview)
+                    }
+
+                    if (showHomeCreateTransactionDialog) {
+                        TransactionOverviewEditorDialog(
+                            title = "Новая операция",
+                            accounts = loadedOverview.accounts,
+                            categories = loadedOverview.categories,
+                            onDismiss = { showHomeCreateTransactionDialog = false },
+                            onSave = { type, amount, accountId, categoryId, date, comment ->
+                                val rollbackState = dashboardController.state
+                                dashboardState = dashboardController.previewCreateTransaction(type, amount, accountId, categoryId, date, comment)
+                                showHomeCreateTransactionDialog = false
+                                coroutineScope.launch {
+                                    applyDashboardEvent(
+                                        dashboardController.createTransaction(type, amount, accountId, categoryId, date, comment, rollbackState)
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -637,6 +669,7 @@ private fun LoadingDashboard(state: FinanceDashboardState) {
 private fun ResponsiveShell(
     selectedTab: DashboardTab,
     onTabSelected: (DashboardTab) -> Unit,
+    onHomeAddTransaction: () -> Unit,
     content: @Composable () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(backgroundGradient)) {
@@ -665,36 +698,52 @@ private fun ResponsiveShell(
                 }
             }
         } else {
-            Scaffold(
-                backgroundColor = Color.Transparent,
-                bottomBar = {
-                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        BottomNavigation(
-                            backgroundColor = AppCard.copy(alpha = 0.94f),
-                            elevation = 16.dp,
-                            modifier = Modifier.clip(RoundedCornerShape(28.dp))
-                        ) {
-                            DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
-                                BottomNavigationItem(
-                                    selected = selectedTab == tab,
-                                    onClick = { onTabSelected(tab) },
-                                    icon = { NavigationGlyph(tab, selectedTab == tab, size = 38.dp) },
-                                    label = { Text(tab.title, fontSize = 10.sp, maxLines = 1) },
-                                    selectedContentColor = AppPurple,
-                                    unselectedContentColor = AppMuted
-                                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                Scaffold(
+                    backgroundColor = Color.Transparent,
+                    bottomBar = {
+                        Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                            BottomNavigation(
+                                backgroundColor = AppCard.copy(alpha = 0.94f),
+                                elevation = 16.dp,
+                                modifier = Modifier.clip(RoundedCornerShape(28.dp))
+                            ) {
+                                DashboardTab.entries.filter { it.showInNavigation }.forEach { tab ->
+                                    BottomNavigationItem(
+                                        selected = selectedTab == tab,
+                                        onClick = { onTabSelected(tab) },
+                                        icon = { NavigationGlyph(tab, selectedTab == tab, size = 34.dp) },
+                                        label = { Text(tab.title, fontSize = 9.sp, maxLines = 1) },
+                                        selectedContentColor = AppPurple,
+                                        unselectedContentColor = AppMuted
+                                    )
+                                }
                             }
                         }
                     }
+                ) { paddingValues ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        content()
+                    }
                 }
-            ) { paddingValues ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    content()
+
+                if (selectedTab == DashboardTab.Home) {
+                    Image(
+                        painter = painterResource(Res.drawable.btn_add_bg),
+                        contentDescription = "Добавить операцию",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 22.dp, bottom = 92.dp)
+                            .size(66.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onHomeAddTransaction)
+                    )
                 }
             }
         }

@@ -51,6 +51,7 @@ data class TransactionOverview(
     val createdBy: Int? = null,
     val categoryId: Int? = null,
     val category: String,
+    val categoryIconKey: String? = null,
     val comment: String,
     val amount: Double = 0.0,
     val currency: String = CurrencyCatalog.DEFAULT_CODE,
