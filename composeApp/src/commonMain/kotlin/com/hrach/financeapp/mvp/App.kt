@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
@@ -57,6 +58,8 @@ import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
 import com.hrach.financeapp.data.repository.LocalFinanceOverviewRepository
+import com.hrach.financeapp.data.repository.OfflineDataMigrationService
+import com.hrach.financeapp.data.repository.offlineBaseCurrency
 import com.hrach.financeapp.ui.screens.AppBackgroundGradient
 import com.hrach.financeapp.ui.screens.AppBlue
 import com.hrach.financeapp.ui.screens.AppCard
@@ -136,6 +139,8 @@ private fun AuthenticatedApp(
     var sessionLoaded by remember(sessionStore) { mutableStateOf(false) }
     var token by remember(sessionStore) { mutableStateOf<String?>(null) }
     var offlineMode by remember { mutableStateOf(false) }
+    var authStartMode by remember { mutableStateOf(AuthMode.Login) }
+    val offlineRepository = remember { LocalFinanceOverviewRepository() }
 
     LaunchedEffect(authSession) {
         token = authSession.restoreToken()
@@ -154,18 +159,24 @@ private fun AuthenticatedApp(
     val activeToken = token
     if (activeToken.isNullOrBlank()) {
         if (offlineMode) {
-            val offlineRepository = remember { LocalFinanceOverviewRepository() }
             FinanceOverviewApp(
                 repository = offlineRepository,
                 onLogout = {
+                    authStartMode = AuthMode.Login
+                    offlineMode = false
+                },
+                onOpenRegistration = {
+                    authStartMode = AuthMode.Register
                     offlineMode = false
                 }
             )
         } else {
             AuthScreen(
                 authSession = authSession,
+                initialMode = authStartMode,
                 onAuthenticated = { authToken ->
                     offlineMode = false
+                    authStartMode = AuthMode.Login
                     token = authToken
                 },
                 onOffline = {
@@ -181,6 +192,7 @@ private fun AuthenticatedApp(
     }
     FinanceOverviewApp(
         repository = overviewRepository,
+        offlineMigrationRepository = offlineRepository,
         onLogout = {
             coroutineScope.launch {
                 authSession.logout(token)
@@ -199,8 +211,10 @@ private fun AuthenticatedApp(
 @Composable
 private fun FinanceOverviewApp(
     repository: FinanceOverviewRepository,
+    offlineMigrationRepository: LocalFinanceOverviewRepository? = null,
     onLogout: (() -> Unit)?,
-    onAuthExpired: (() -> Unit)? = null
+    onAuthExpired: (() -> Unit)? = null,
+    onOpenRegistration: (() -> Unit)? = null
 ) {
         val dashboardController = remember(repository) { FinanceDashboardController(repository) }
         val coroutineScope = rememberCoroutineScope()
@@ -208,6 +222,12 @@ private fun FinanceOverviewApp(
             mutableStateOf(dashboardController.state)
         }
         var showHomeCreateTransactionDialog by remember { mutableStateOf(false) }
+        var showOfflineMigrationDialog by remember { mutableStateOf(false) }
+        var hasOfflineDataToMigrate by remember(offlineMigrationRepository) {
+            mutableStateOf(offlineMigrationRepository?.hasMigratableData() == true)
+        }
+        var migrationError by remember { mutableStateOf<String?>(null) }
+        var migrationInProgress by remember { mutableStateOf(false) }
         fun applyDashboardEvent(event: FinanceDashboardEvent) {
             dashboardState = dashboardController.state
             if (event == FinanceDashboardEvent.AuthExpired) {
@@ -238,6 +258,8 @@ private fun FinanceOverviewApp(
                         DashboardTab.Home -> HomeOverviewScreen(
                             overview = loadedOverview,
                             onLogout = onLogout,
+                            offlineMigrationAvailable = hasOfflineDataToMigrate && !loadedOverview.isOfflineMode,
+                            onOpenOfflineMigration = { showOfflineMigrationDialog = true },
                             onOpenMembers = {
                                 dashboardState = dashboardController.selectTab(DashboardTab.Members)
                             },
@@ -383,7 +405,8 @@ private fun FinanceOverviewApp(
                                 coroutineScope.launch {
                                     applyDashboardEvent(dashboardController.deleteGroupMember(member, rollbackState))
                                 }
-                            }
+                            },
+                            onOpenRegistration = onOpenRegistration
                         )
                         DashboardTab.Analytics -> AnalyticsOverviewScreen(loadedOverview)
                     }
@@ -406,19 +429,127 @@ private fun FinanceOverviewApp(
                             }
                         )
                     }
+
+                    if (showOfflineMigrationDialog && offlineMigrationRepository != null) {
+                        OfflineMigrationDialog(
+                            overview = loadedOverview,
+                            offlineRepository = offlineMigrationRepository,
+                            isLoading = migrationInProgress,
+                            error = migrationError,
+                            onDismiss = {
+                                if (!migrationInProgress) {
+                                    migrationError = null
+                                    showOfflineMigrationDialog = false
+                                }
+                            },
+                            onConfirm = { groupId, currency ->
+                                coroutineScope.launch {
+                                    migrationInProgress = true
+                                    migrationError = null
+                                    runCatching {
+                                        OfflineDataMigrationService(
+                                            offlineRepository = offlineMigrationRepository,
+                                            onlineRepository = repository
+                                        ).migrateToGroup(groupId, currency)
+                                    }.fold(
+                                        onSuccess = {
+                                            hasOfflineDataToMigrate = offlineMigrationRepository.hasMigratableData()
+                                            showOfflineMigrationDialog = false
+                                            applyDashboardEvent(dashboardController.refresh())
+                                        },
+                                        onFailure = { throwable ->
+                                            migrationError = throwable.message ?: "Не удалось перенести офлайн-данные"
+                                        }
+                                    )
+                                    migrationInProgress = false
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
 }
 
 @Composable
+private fun OfflineMigrationDialog(
+    overview: com.hrach.financeapp.data.model.FinanceOverview,
+    offlineRepository: LocalFinanceOverviewRepository,
+    isLoading: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, String) -> Unit
+) {
+    val offlineCurrency = remember(offlineRepository) { offlineRepository.migrationSnapshot().offlineBaseCurrency() }
+    var selectedGroupId by remember(overview.activeGroupId, overview.groups) {
+        mutableStateOf(overview.activeGroupId ?: overview.groups.firstOrNull()?.id)
+    }
+    val selectedGroup = overview.groups.firstOrNull { it.id == selectedGroupId }
+    val onlineCurrency = selectedGroup?.baseCurrency ?: "RUB"
+    val currencyDiffers = !offlineCurrency.equals(onlineCurrency, ignoreCase = true)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Перенести офлайн-данные?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Данные будут добавлены в группу: ${selectedGroup?.name ?: "не выбрана"}.")
+                Text("Выберите другую группу, если нужно:")
+                overview.groups.forEach { group ->
+                    Button(
+                        onClick = { selectedGroupId = group.id },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = if (group.id == selectedGroupId) AppPurple else Color(0xFFF1E7FB),
+                            contentColor = if (group.id == selectedGroupId) Color.White else AppPurple
+                        ),
+                        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("${group.name} · ${group.baseCurrency}")
+                    }
+                }
+                if (currencyDiffers) {
+                    Text(
+                        "Внимание: офлайн-бюджет велся в $offlineCurrency, а онлайн-группа в $onlineCurrency. Суммы будут перенесены без конвертации, валюта останется $onlineCurrency.",
+                        color = Color(0xFFE85B6A),
+                        style = MaterialTheme.typography.body2
+                    )
+                }
+                error?.let {
+                    Text(it, color = Color(0xFFE85B6A), style = MaterialTheme.typography.body2)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val group = selectedGroup ?: return@Button
+                    onConfirm(group.id, group.baseCurrency)
+                },
+                enabled = selectedGroup != null && !isLoading,
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White)
+            ) {
+                Text(if (isLoading) "Переносим..." else "Перенести")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text("Позже")
+            }
+        }
+    )
+}
+
+@Composable
 private fun AuthScreen(
     authSession: AuthSessionCoordinator,
+    initialMode: AuthMode = AuthMode.Login,
     onAuthenticated: (String) -> Unit,
     onOffline: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var authMode by remember { mutableStateOf(AuthMode.Login) }
+    var authMode by remember(initialMode) { mutableStateOf(initialMode) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

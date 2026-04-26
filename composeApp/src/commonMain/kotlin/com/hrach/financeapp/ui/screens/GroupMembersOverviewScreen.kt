@@ -36,7 +36,8 @@ fun GroupMembersOverviewScreen(
     overview: FinanceOverview,
     onAddMember: (String, String) -> Unit,
     onUpdateMemberRole: (GroupMemberOverview, String) -> Unit,
-    onDeleteMember: (GroupMemberOverview) -> Unit
+    onDeleteMember: (GroupMemberOverview) -> Unit,
+    onOpenRegistration: (() -> Unit)? = null
 ) {
     var email by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("member") }
@@ -63,6 +64,15 @@ fun GroupMembersOverviewScreen(
                             color = Color(0xFF6B6579),
                             style = MaterialTheme.typography.body2
                         )
+                        Button(
+                            onClick = { onOpenRegistration?.invoke() },
+                            enabled = onOpenRegistration != null,
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF5E4B8B), contentColor = Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Зарегистрироваться")
+                        }
                     }
                 }
             }

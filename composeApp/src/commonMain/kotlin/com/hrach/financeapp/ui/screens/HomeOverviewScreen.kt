@@ -53,6 +53,8 @@ import smartbudget.composeapp.generated.resources.img_wallet
 fun HomeOverviewScreen(
     overview: FinanceOverview,
     onLogout: (() -> Unit)?,
+    offlineMigrationAvailable: Boolean = false,
+    onOpenOfflineMigration: () -> Unit = {},
     onOpenMembers: () -> Unit = {},
     onOpenCategories: () -> Unit = {},
     onSelectGroup: (GroupOverview) -> Unit = {},
@@ -65,6 +67,12 @@ fun HomeOverviewScreen(
                 subtitle = if (overview.isOfflineMode) "Режим: без регистрации" else "Пользователь: ${overview.userEmail}",
                 onLogout = onLogout
             )
+        }
+
+        if (offlineMigrationAvailable) {
+            item {
+                OfflineMigrationCard(onClick = onOpenOfflineMigration)
+            }
         }
 
         item {
@@ -114,6 +122,28 @@ fun HomeOverviewScreen(
 
         item {
             Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun OfflineMigrationCard(onClick: () -> Unit) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Можно синхронизировать офлайн-данные", color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
+            Text(
+                "Мы нашли бюджет, который велся без регистрации. Его можно перенести в выбранную онлайн-группу.",
+                color = Color(0xFF6B6579),
+                style = MaterialTheme.typography.body2
+            )
+            Button(
+                onClick = onClick,
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppPurple, contentColor = Color.White),
+                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+            ) {
+                Text("Перенести данные")
+            }
         }
     }
 }

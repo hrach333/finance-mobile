@@ -26,6 +26,21 @@ class LocalFinanceOverviewRepository(
     TransactionMutationsRepository {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
+    fun hasMigratableData(): Boolean {
+        val database = load()
+        val hasNonDefaultAccount = database.accounts.any {
+            it.id != 1 || it.name != "Основной счет" || it.initialBalance != 0.0 || it.currentBalance != 0.0
+        }
+        val hasCustomCategories = database.categories.any { !it.isSystem }
+        return hasNonDefaultAccount || hasCustomCategories || database.transactions.isNotEmpty()
+    }
+
+    fun migrationSnapshot(): OfflineFinanceDatabase = load()
+
+    fun clearOfflineData() {
+        save(OfflineFinanceDatabase())
+    }
+
     override suspend fun getOverview(): FinanceOverview {
         val database = load()
         val groupId = OFFLINE_GROUP_ID
