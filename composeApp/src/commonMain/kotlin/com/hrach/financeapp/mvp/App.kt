@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hrach.financeapp.config.DebugFeatureFlags
 import com.hrach.financeapp.data.auth.SessionStore
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.repository.AuthRepository
@@ -469,7 +470,7 @@ private fun FinanceOverviewApp(
                         )
                     }
 
-                    if (onboardingSessionStore != null) {
+                    if (onboardingSessionStore != null && DebugFeatureFlags.onboardingResetButtonEnabled) {
                         OnboardingResetButton(
                             onClick = {
                                 coroutineScope.launch {
