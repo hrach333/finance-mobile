@@ -25,12 +25,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
@@ -38,6 +41,9 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.lightColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +61,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -742,6 +750,8 @@ private fun AuthScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordConfirmVisible by remember { mutableStateOf(false) }
     var resetCode by remember { mutableStateOf("") }
     var codeRequested by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -820,7 +830,20 @@ private fun AuthScreen(
                             value = password,
                             onValueChange = { password = it },
                             label = { Text(if (isResetMode) "Новый пароль" else "Пароль") },
-                            visualTransformation = PasswordVisualTransformation(),
+                            visualTransformation = if (passwordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль"
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -831,7 +854,20 @@ private fun AuthScreen(
                             value = passwordConfirm,
                             onValueChange = { passwordConfirm = it },
                             label = { Text("Повторите пароль") },
-                            visualTransformation = PasswordVisualTransformation(),
+                            visualTransformation = if (passwordConfirmVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordConfirmVisible = !passwordConfirmVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordConfirmVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (passwordConfirmVisible) "Скрыть пароль" else "Показать пароль"
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -949,6 +985,8 @@ private fun AuthScreen(
                                 error = null
                                 infoMessage = null
                                 passwordConfirm = ""
+                                passwordVisible = false
+                                passwordConfirmVisible = false
                             },
                             shape = RoundedCornerShape(18.dp),
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF1E7FB), contentColor = Color(0xFF5E4B8B)),
@@ -968,6 +1006,8 @@ private fun AuthScreen(
                             resetCode = ""
                             password = ""
                             passwordConfirm = ""
+                            passwordVisible = false
+                            passwordConfirmVisible = false
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
