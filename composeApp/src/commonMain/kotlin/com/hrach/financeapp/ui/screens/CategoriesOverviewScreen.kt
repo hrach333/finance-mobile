@@ -1,16 +1,20 @@
 package com.hrach.financeapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -28,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -179,15 +184,20 @@ private fun CategoryOverviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RoundIconButton(
-                        icon = category.iconKey.toCategoryIcon(category.type),
-                        contentDescription = category.name,
-                        onClick = {},
-                        enabled = false,
-                        size = 44.dp,
-                        background = category.iconKey.categoryColor(category.type).copy(alpha = 0.18f),
-                        contentColor = category.iconKey.categoryColor(category.type)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(category.iconKey.categoryColor(category.type).copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CategorySpriteIcon(
+                            iconKey = category.iconKey,
+                            type = category.type,
+                            contentDescription = category.name,
+                            size = 36.dp
+                        )
+                    }
                     Column {
                         Text(category.name, color = Color(0xFF2F2B3A), fontWeight = FontWeight.Bold)
                         Text(
@@ -225,6 +235,7 @@ private fun CategoryOverviewEditorDialog(
     var type by remember { mutableStateOf(initialType) }
     var iconKey by remember { mutableStateOf(initialIconKey) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showIconPicker by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -273,16 +284,36 @@ private fun CategoryOverviewEditorDialog(
                 }
 
                 Text("Иконка", color = Color(0xFF6B6579), style = MaterialTheme.typography.body2)
-                iconOptionsForType(type).chunked(4).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { option ->
-                            CategoryIconButton(
-                                value = option,
+                Button(
+                    onClick = { showIconPicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = iconKey.categoryColor(type).copy(alpha = 0.16f),
+                        contentColor = Color(0xFF2F2B3A)
+                    ),
+                    elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.74f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CategorySpriteIcon(
+                                iconKey = iconKey,
                                 type = type,
-                                selectedValue = iconKey,
-                                onSelected = { iconKey = it }
+                                contentDescription = iconKey,
+                                size = 44.dp
                             )
                         }
+                        Text("Выбрать иконку", fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -292,6 +323,18 @@ private fun CategoryOverviewEditorDialog(
             }
         }
     )
+
+    if (showIconPicker) {
+        CategoryIconPickerDialog(
+            type = type,
+            selectedValue = iconKey,
+            onSelected = {
+                iconKey = it
+                showIconPicker = false
+            },
+            onDismiss = { showIconPicker = false }
+        )
+    }
 }
 
 @Composable
@@ -326,20 +369,60 @@ private fun CategoryIconButton(
     val selected = value == selectedValue
     Button(
         onClick = { onSelected(value) },
-        modifier = Modifier.size(52.dp),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.size(64.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(
             backgroundColor = if (selected) value.categoryColor(type) else value.categoryColor(type).copy(alpha = 0.16f),
             contentColor = if (selected) Color.White else value.categoryColor(type)
         ),
-        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp)
+        elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+        contentPadding = PaddingValues(0.dp)
     ) {
-        FinanceIcon(
-            icon = value.toCategoryIcon(type),
+        CategorySpriteIcon(
+            iconKey = value,
+            type = type,
             contentDescription = value,
-            modifier = Modifier.size(24.dp)
+            size = 46.dp
         )
     }
+}
+
+@Composable
+private fun CategoryIconPickerDialog(
+    type: String,
+    selectedValue: String,
+    onSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Закрыть")
+            }
+        },
+        title = { Text("Выберите иконку") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 430.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(allCategoryIconOptions().chunked(4)) { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { option ->
+                            CategoryIconButton(
+                                value = option,
+                                type = type,
+                                selectedValue = selectedValue,
+                                onSelected = onSelected
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    )
 }
 
 private fun String.toCategoryTypeLabel(): String = when (this) {
@@ -356,3 +439,5 @@ private fun iconOptionsForType(type: String): List<String> {
         listOf("shopping", "transport", "health", "home", "food", "sport", "gift", "other")
     }
 }
+
+private fun allCategoryIconOptions(): List<String> = List(56) { "sprite_$it" }

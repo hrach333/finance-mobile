@@ -435,11 +435,11 @@ fun TransactionOverviewCard(
                     modifier = Modifier.size(42.dp).clip(CircleShape).background(tint.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    FinanceIcon(
-                        icon = transaction.categoryIconKey.toCategoryIcon(type),
+                    CategorySpriteIcon(
+                        iconKey = transaction.categoryIconKey,
+                        type = type,
                         contentDescription = null,
-                        tint = tint,
-                        modifier = Modifier.size(22.dp)
+                        size = 34.dp
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
