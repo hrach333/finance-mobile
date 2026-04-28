@@ -20,6 +20,12 @@ class AuthSessionCoordinator(
         }
     }
 
+    suspend fun loginWithYandex(oauthToken: String): AuthResult {
+        return authenticate {
+            authRepository.loginWithYandex(oauthToken = oauthToken)
+        }
+    }
+
     suspend fun register(name: String, email: String, password: String): AuthResult {
         return authenticate {
             authRepository.register(name = name.trim(), email = email.trim(), password = password)

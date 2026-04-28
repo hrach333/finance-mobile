@@ -7,6 +7,7 @@ import com.hrach.financeapp.data.dto.LoginRequest
 import com.hrach.financeapp.data.dto.MessageResponse
 import com.hrach.financeapp.data.dto.RegisterRequest
 import com.hrach.financeapp.data.dto.ResetPasswordRequest
+import com.hrach.financeapp.data.dto.YandexMobileLoginRequest
 import com.hrach.financeapp.data.repository.AuthRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -35,6 +36,11 @@ class KtorAuthRepository(
     override suspend fun login(email: String, password: String): AuthResponseDto =
         httpClient.post("login") {
             setBody(LoginRequest(email = email, password = password))
+        }.body()
+
+    override suspend fun loginWithYandex(oauthToken: String): AuthResponseDto =
+        httpClient.post("auth/yandex/mobile") {
+            setBody(YandexMobileLoginRequest(oauthToken = oauthToken))
         }.body()
 
     override suspend fun register(name: String, email: String, password: String): AuthResponseDto =

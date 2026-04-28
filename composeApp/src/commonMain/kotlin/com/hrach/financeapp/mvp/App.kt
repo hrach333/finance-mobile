@@ -113,6 +113,7 @@ fun App(
     repository: FinanceOverviewRepository = DemoFinanceOverviewRepository(),
     authRepository: AuthRepository? = null,
     sessionStore: SessionStore? = null,
+    yandexOAuthTokenProvider: (suspend () -> String)? = null,
     repositoryFactory: (((() -> String?) -> FinanceOverviewRepository))? = null
 ) {
     MaterialTheme(
@@ -129,6 +130,7 @@ fun App(
             AuthenticatedApp(
                 authRepository = authRepository,
                 sessionStore = sessionStore,
+                yandexOAuthTokenProvider = yandexOAuthTokenProvider,
                 repositoryFactory = repositoryFactory
             )
             return@MaterialTheme
@@ -142,6 +144,7 @@ fun App(
 private fun AuthenticatedApp(
     authRepository: AuthRepository,
     sessionStore: SessionStore,
+    yandexOAuthTokenProvider: (suspend () -> String)?,
     repositoryFactory: (() -> String?) -> FinanceOverviewRepository
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -190,6 +193,7 @@ private fun AuthenticatedApp(
             AuthScreen(
                 authSession = authSession,
                 initialMode = authStartMode,
+                yandexOAuthTokenProvider = yandexOAuthTokenProvider,
                 onAuthenticated = { authToken ->
                     offlineMode = false
                     authStartMode = AuthMode.Login
@@ -741,6 +745,7 @@ private fun OfflineMigrationDialog(
 private fun AuthScreen(
     authSession: AuthSessionCoordinator,
     initialMode: AuthMode = AuthMode.Login,
+    yandexOAuthTokenProvider: (suspend () -> String)?,
     onAuthenticated: (String) -> Unit,
     onOffline: () -> Unit
 ) {
@@ -965,6 +970,39 @@ private fun AuthScreen(
                     }
 
                     if (!isResetMode) {
+                        val yandexProvider = yandexOAuthTokenProvider
+                        if (!isRegisterMode && yandexProvider != null) {
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isLoading = true
+                                        error = null
+                                        infoMessage = null
+                                        runCatching { yandexProvider() }
+                                            .fold(
+                                                onSuccess = { oauthToken ->
+                                                    when (val result = authSession.loginWithYandex(oauthToken)) {
+                                                        is AuthResult.Failure -> error = result.message
+                                                        is AuthResult.Success -> onAuthenticated(result.token)
+                                                    }
+                                                },
+                                                onFailure = { throwable ->
+                                                    error = throwable.message ?: "Не удалось войти через Яндекс"
+                                                }
+                                            )
+                                        isLoading = false
+                                    }
+                                },
+                                enabled = !isLoading,
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFFCC00), contentColor = Color(0xFF111111)),
+                                elevation = ButtonDefaults.elevation(defaultElevation = 0.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(if (isLoading) "Подождите..." else "Войти через Яндекс")
+                            }
+                        }
+
                         Button(
                             onClick = {
                                 error = null
