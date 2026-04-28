@@ -10,6 +10,7 @@ import com.hrach.financeapp.data.network.KtorAuthRepository
 import com.hrach.financeapp.data.network.KtorFinanceDataSource
 import com.hrach.financeapp.data.repository.CurrentMonthFinancePeriodProvider
 import com.hrach.financeapp.data.repository.RemoteFinanceOverviewRepository
+import com.hrach.financeapp.auth.DesktopYandexOAuthTokenProvider
 import org.jetbrains.compose.resources.painterResource
 import smartbudget.composeapp.generated.resources.Res
 import smartbudget.composeapp.generated.resources.app_icon
@@ -19,6 +20,7 @@ fun main() = application {
     val authRepository = KtorAuthRepository().also { repository ->
         closeHandlers += { repository.close() }
     }
+    val yandexOAuthTokenProvider = DesktopYandexOAuthTokenProvider()
     val windowState = rememberWindowState(size = DpSize(width = 1280.dp, height = 860.dp))
 
     Window(
@@ -35,6 +37,9 @@ fun main() = application {
         App(
             authRepository = authRepository,
             sessionStore = DesktopSessionStore(),
+            yandexOAuthTokenProvider = {
+                yandexOAuthTokenProvider.requestToken()
+            },
             repositoryFactory = { tokenProvider ->
                 val dataSource = KtorFinanceDataSource(tokenProvider = tokenProvider)
                 closeHandlers += { dataSource.close() }
