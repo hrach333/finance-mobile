@@ -4,6 +4,7 @@ val composeMultiplatformVersion = "1.10.3"
 val ktorVersion = "3.3.1"
 val kotlinxDatetimeVersion = "0.7.1"
 val slf4jVersion = "2.0.17"
+val yandexClientId = providers.gradleProperty("YANDEX_CLIENT_ID").orElse("").get()
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -161,15 +162,25 @@ ksp {
 compose.desktop {
     application {
         mainClass = "com.hrach.financeapp.mvp.MainKt"
+        jvmArgs += listOf("-DYANDEX_CLIENT_ID=$yandexClientId")
 
         nativeDistributions {
+            modules("jdk.httpserver", "java.net.http")
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm
             )
-            packageName = "SmartBudgetMvp"
+            packageName = "Умный бюджет"
             packageVersion = "1.2.0"
+            description = "Умный бюджет"
+            vendor = "Hrach"
+
+            linux {
+                packageName = "smartbudget"
+                iconFile.set(project.file("src/commonMain/composeResources/drawable/app_icon.png"))
+            }
         }
     }
 }
