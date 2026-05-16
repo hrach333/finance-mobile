@@ -34,20 +34,11 @@ object ApiClient {
             .addInterceptor(loggingInterceptor)
             .build()
     }
-    /*
-    private val aiHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .build()
-
-    }
-    *
-     */
     private val aiHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(180, TimeUnit.SECONDS)
-        .writeTimeout(180, TimeUnit.SECONDS)
-        .callTimeout(180, TimeUnit.SECONDS)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.MINUTES)
+        .writeTimeout(10, TimeUnit.MINUTES)
+        .callTimeout(10, TimeUnit.MINUTES)
         .build()
 
     val financeApi: FinanceApi by lazy {

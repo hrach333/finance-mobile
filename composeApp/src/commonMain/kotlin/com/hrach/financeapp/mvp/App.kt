@@ -51,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,9 +68,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.hrach.financeapp.config.DebugFeatureFlags
+import com.hrach.financeapp.config.AiConfig
+import com.hrach.financeapp.config.FeatureFlags
 import com.hrach.financeapp.data.auth.SessionStore
 import com.hrach.financeapp.data.model.FinanceOverview
+import com.hrach.financeapp.data.network.FinanceAiAdvisor
 import com.hrach.financeapp.data.repository.AuthRepository
 import com.hrach.financeapp.data.repository.DemoFinanceOverviewRepository
 import com.hrach.financeapp.data.repository.FinanceOverviewRepository
@@ -257,6 +260,11 @@ private fun FinanceOverviewApp(
             mutableStateOf(onboardingSessionStore == null)
         }
         var hiddenOnboardingStepTitle by remember { mutableStateOf<String?>(null) }
+        val financeAiAdvisor = remember { FinanceAiAdvisor(model = AiConfig.ollamaModel) }
+        var showAiAdvice by rememberSaveable { mutableStateOf(false) }
+        var aiAdvice by rememberSaveable { mutableStateOf<String?>(null) }
+        var aiError by rememberSaveable { mutableStateOf<String?>(null) }
+        var aiLoading by remember { mutableStateOf(false) }
         fun applyDashboardEvent(event: FinanceDashboardEvent) {
             dashboardState = dashboardController.state
             if (event == FinanceDashboardEvent.AuthExpired) {
@@ -463,7 +471,49 @@ private fun FinanceOverviewApp(
                             },
                             onOpenRegistration = onOpenRegistration
                         )
-                        DashboardTab.Analytics -> AnalyticsOverviewScreen(loadedOverview)
+                        DashboardTab.Analytics -> AnalyticsOverviewScreen(
+                            overview = loadedOverview,
+                            aiHelpEnabled = FeatureFlags.aiHelpButtonEnabled,
+                            showAiAdvice = showAiAdvice,
+                            aiAdvice = aiAdvice,
+                            aiError = aiError,
+                            aiLoading = aiLoading,
+                            onRequestAiAdvice = {
+                                showAiAdvice = true
+                                if (aiAdvice.isNullOrBlank() || aiError != null) {
+                                    aiAdvice = null
+                                    aiError = null
+                                    aiLoading = true
+                                    coroutineScope.launch {
+                                        try {
+                                            aiAdvice = financeAiAdvisor.getAdvice(loadedOverview)
+                                        } catch (e: Exception) {
+                                            aiError = e.message ?: "Не удалось получить ответ от ИИ"
+                                        } finally {
+                                            aiLoading = false
+                                        }
+                                    }
+                                }
+                            },
+                            onRefreshAiAdvice = {
+                                showAiAdvice = true
+                                aiAdvice = null
+                                aiError = null
+                                aiLoading = true
+                                coroutineScope.launch {
+                                    try {
+                                        aiAdvice = financeAiAdvisor.getAdvice(loadedOverview)
+                                    } catch (e: Exception) {
+                                        aiError = e.message ?: "Не удалось получить ответ от ИИ"
+                                    } finally {
+                                        aiLoading = false
+                                    }
+                                }
+                            },
+                            onDismissAiAdvice = {
+                                showAiAdvice = false
+                            }
+                        )
                     }
 
                     onboardingStep?.takeIf { it.title != hiddenOnboardingStepTitle }?.let { step ->
@@ -477,18 +527,6 @@ private fun FinanceOverviewApp(
                                 coroutineScope.launch {
                                     onboardingSessionStore?.setOnboardingCompleted(true)
                                     onboardingCompleted = true
-                                }
-                            }
-                        )
-                    }
-
-                    if (onboardingSessionStore != null && DebugFeatureFlags.onboardingResetButtonEnabled) {
-                        OnboardingResetButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    onboardingSessionStore.setOnboardingCompleted(false)
-                                    onboardingCompleted = false
-                                    hiddenOnboardingStepTitle = null
                                 }
                             }
                         )

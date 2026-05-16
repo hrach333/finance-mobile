@@ -12,16 +12,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,6 +43,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.hrach.financeapp.data.currency.CurrencyCatalog
 import com.hrach.financeapp.data.model.FinanceOverview
 import com.hrach.financeapp.data.model.TransactionKind
@@ -64,7 +74,17 @@ private data class ExpenseSlice(
 )
 
 @Composable
-fun AnalyticsOverviewScreen(overview: FinanceOverview) {
+fun AnalyticsOverviewScreen(
+    overview: FinanceOverview,
+    aiHelpEnabled: Boolean = false,
+    showAiAdvice: Boolean = false,
+    aiAdvice: String? = null,
+    aiError: String? = null,
+    aiLoading: Boolean = false,
+    onRequestAiAdvice: () -> Unit = {},
+    onRefreshAiAdvice: () -> Unit = {},
+    onDismissAiAdvice: () -> Unit = {}
+) {
     val currency = overview.activeCurrency()
     val expenseSlices = remember(overview.transactions, overview.categories) {
         val categoryNames = overview.categories.associate { it.id to it.name }
@@ -87,6 +107,16 @@ fun AnalyticsOverviewScreen(overview: FinanceOverview) {
     val totalIncome = overview.transactions
         .filter { it.kind == TransactionKind.Income }
         .sumOf { it.amount }
+
+    if (showAiAdvice) {
+        FinanceAiAdviceDialog(
+            advice = aiAdvice,
+            error = aiError,
+            isLoading = aiLoading,
+            onRefresh = onRefreshAiAdvice,
+            onDismiss = onDismissAiAdvice
+        )
+    }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -114,7 +144,11 @@ fun AnalyticsOverviewScreen(overview: FinanceOverview) {
             ExpenseDonutCard(
                 slices = expenseSlices,
                 totalExpense = totalExpense,
-                currency = currency
+                currency = currency,
+                aiHelpEnabled = aiHelpEnabled,
+                aiLoading = aiLoading,
+                hasAiAdvice = !aiAdvice.isNullOrBlank(),
+                onRequestAiAdvice = onRequestAiAdvice
             )
         }
         item {
@@ -196,7 +230,11 @@ private fun SummaryMetricCard(
 private fun ExpenseDonutCard(
     slices: List<ExpenseSlice>,
     totalExpense: Double,
-    currency: String
+    currency: String,
+    aiHelpEnabled: Boolean,
+    aiLoading: Boolean,
+    hasAiAdvice: Boolean,
+    onRequestAiAdvice: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(28.dp),
@@ -210,12 +248,33 @@ private fun ExpenseDonutCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Структура расходов",
-                color = Color(0xFF23212B),
-                style = MaterialTheme.typography.h6,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Структура расходов",
+                    color = Color(0xFF23212B),
+                    style = MaterialTheme.typography.h6,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (aiHelpEnabled) {
+                    Button(
+                        onClick = onRequestAiAdvice,
+                        enabled = !aiLoading
+                    ) {
+                        Text(
+                            when {
+                                aiLoading -> "ИИ..."
+                                hasAiAdvice -> "Прочесть анализ ИИ"
+                                else -> "ИИ помощник"
+                            }
+                        )
+                    }
+                }
+            }
             Box(modifier = Modifier.fillMaxWidth().height(300.dp), contentAlignment = Alignment.Center) {
                 if (totalExpense <= 0.0) {
                     Text(
@@ -238,6 +297,153 @@ private fun ExpenseDonutCard(
             }
         }
     }
+}
+
+@Composable
+private fun FinanceAiAdviceDialog(
+    advice: String?,
+    error: String?,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        properties = DialogProperties(
+            dismissOnBackPress = !isLoading,
+            dismissOnClickOutside = !isLoading,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            backgroundColor = Color(0xFFFFFBFF),
+            elevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .heightIn(max = 760.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 12.dp)
+                ) {
+                    Text(
+                        text = "Финансовый ИИ помощник",
+                        color = Color(0xFF23212B),
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isLoading) "Готовлю анализ" else "Сохраненный анализ можно открыть повторно",
+                        color = Color(0xFF6B6579),
+                        style = MaterialTheme.typography.body2
+                    )
+                }
+
+                Divider(color = Color(0xFFE8E1F0))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    when {
+                        isLoading -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                Text(
+                                    text = "Анализирую доходы, расходы и категории...",
+                                    color = Color(0xFF2F2B3A)
+                                )
+                            }
+                        }
+                        error != null -> Text(
+                            text = error,
+                            color = Color(0xFFE85B6A),
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        )
+                        advice != null -> FinanceAiMarkdownText(
+                            text = advice,
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        )
+                        else -> Text("Ответ пока пустой.", color = Color(0xFF2F2B3A))
+                    }
+                }
+
+                Divider(color = Color(0xFFE8E1F0))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!isLoading) {
+                        TextButton(onClick = onRefresh) {
+                            Text("Пересчитать")
+                        }
+                        TextButton(onClick = onDismiss) {
+                            Text("Закрыть")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FinanceAiMarkdownText(text: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        text.lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { rawLine ->
+                val headingLevel = rawLine.takeWhile { it == '#' }.length
+                val line = rawLine
+                    .removePrefix("#".repeat(headingLevel))
+                    .trim()
+                    .removeMarkdownMarkers()
+                when {
+                    headingLevel > 0 -> Text(
+                        text = line,
+                        color = Color(0xFF2F2B3A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = if (headingLevel == 1) 20.sp else 18.sp
+                    )
+                    rawLine.startsWith("- ") || rawLine.startsWith("* ") -> Text(
+                        text = "• ${rawLine.drop(2).trim().removeMarkdownMarkers()}",
+                        color = Color(0xFF2F2B3A),
+                        style = MaterialTheme.typography.body1
+                    )
+                    rawLine.matches(Regex("""\d+\.\s+.*""")) -> Text(
+                        text = rawLine.removeMarkdownMarkers(),
+                        color = Color(0xFF2F2B3A),
+                        style = MaterialTheme.typography.body1
+                    )
+                    else -> Text(
+                        text = line,
+                        color = Color(0xFF2F2B3A),
+                        style = MaterialTheme.typography.body1
+                    )
+                }
+            }
+    }
+}
+
+private fun String.removeMarkdownMarkers(): String {
+    return replace(Regex("""\*\*(.*?)\*\*"""), "$1")
+        .replace(Regex("""__(.*?)__"""), "$1")
+        .replace(Regex("""`([^`]*)`"""), "$1")
+        .replace(Regex("""^\s*>+\s*"""), "")
+        .trim()
 }
 
 @Composable

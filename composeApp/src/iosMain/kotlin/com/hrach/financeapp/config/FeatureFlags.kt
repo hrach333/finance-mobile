@@ -1,8 +1,6 @@
 package com.hrach.financeapp.config
 
-import com.hrach.financeapp.BuildConfig
-
 actual object FeatureFlags {
     actual val aiHelpButtonEnabled: Boolean
-        get() = BuildConfig.FEATURE_AI_HELP_BUTTON
+        get() = false
 }

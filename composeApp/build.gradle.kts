@@ -5,6 +5,8 @@ val ktorVersion = "3.3.1"
 val kotlinxDatetimeVersion = "0.7.1"
 val slf4jVersion = "2.0.17"
 val yandexClientId = providers.gradleProperty("YANDEX_CLIENT_ID").orElse("").get()
+val aiHelpButtonEnabled = providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("true").get()
+val ollamaModel = providers.gradleProperty("OLLAMA_MODEL").orElse("llama3.1").get()
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -114,12 +116,17 @@ android {
         buildConfigField(
             "boolean",
             "FEATURE_AI_HELP_BUTTON",
-            providers.gradleProperty("FEATURE_AI_HELP_BUTTON").orElse("false").get()
+            aiHelpButtonEnabled
         )
         buildConfigField(
             "String",
             "FINANCE_API_TOKEN",
             "\"${providers.gradleProperty("FINANCE_API_TOKEN").orElse("").get()}\""
+        )
+        buildConfigField(
+            "String",
+            "OLLAMA_MODEL",
+            "\"$ollamaModel\""
         )
     }
 
@@ -162,7 +169,11 @@ ksp {
 compose.desktop {
     application {
         mainClass = "com.hrach.financeapp.mvp.MainKt"
-        jvmArgs += listOf("-DYANDEX_CLIENT_ID=$yandexClientId")
+        jvmArgs += listOf(
+            "-DYANDEX_CLIENT_ID=$yandexClientId",
+            "-DFEATURE_AI_HELP_BUTTON=$aiHelpButtonEnabled",
+            "-DOLLAMA_MODEL=$ollamaModel"
+        )
 
         nativeDistributions {
             modules("jdk.httpserver", "java.net.http")

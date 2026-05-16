@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.hrach.financeapp.BuildConfig
 import com.hrach.financeapp.data.api.ApiClient
 import com.hrach.financeapp.data.dto.AccountDto
 import com.hrach.financeapp.data.dto.AIChatRequest
@@ -603,26 +604,27 @@ class HomeViewModel(
                 )
 
                 val request = AIChatRequest(
+                    model = BuildConfig.OLLAMA_MODEL.ifBlank { "llama3.1" },
                     messages = listOf(
                         ChatMessage(role = "user", content = prompt)
                     ),
+                    stream = false,
                     temperature = 0.7,
                     max_tokens = 1000
                 )
 
                 val response = ApiClient.aiService.getChatCompletion(request)
-                val advice = response.choices.firstOrNull()?.message?.content
-                //val advice = null
+                val advice = response.contentOrNull()
                 if (advice != null) {
                     _aiAdvice.value = advice
                 } else {
-                    _aiError.value = "Не удалось получить ответ от ИИ"
+                    _aiError.value = "ИИ не вернул текст ответа.\nОтвет сервера: ${response.debugSummary()}"
                 }
             } catch (e: Exception) {
                 Log.e("AI_ADVICE", "Ошибка при запросе к ИИ", e)
                 _aiError.value = when {
                     e.message?.contains("Connection refused") == true -> 
-                        "ИИ модель недоступна. Убедитесь, что LM запущен на http://127.0.0.1:1234"
+                        "ИИ модель недоступна на https://aifinance.hrach.ru/"
                     e.message?.contains("Failed to connect") == true ->
                         "Не удалось подключиться к ИИ модели"
                     else -> "Ошибка: ${e.message ?: "Неизвестная ошибка"}"
